@@ -12,7 +12,7 @@ import UpdatesCard from './components/UpdatesCard.vue'
       <img
         src="@/assets/logo.png"
         alt="TehPon Logo"
-        class="w-64 h-64 object-contain filter drop-shadow-[0_0_25px_rgba(255,0,127,0.5)] transition-transform duration-500 hover:scale-105 rounded-full"
+        class="w-32 h-32 object-contain filter drop-shadow-[0_0_25px_rgba(255,0,127,0.5)] transition-transform duration-500 hover:scale-105 rounded-full"
       />
     </header>
 

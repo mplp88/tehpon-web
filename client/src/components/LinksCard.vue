@@ -4,6 +4,7 @@ const socialLinks = [
   { name: 'YouTube', url: 'https://www.youtube.com/@tehpon' },
   { name: 'Instagram', url: 'https://www.instagram.com/tehpontv' },
   { name: 'TikTok', url: 'https://www.tiktok.com/@tehpontv' },
+  { name: 'Discord', url: 'https://discord.com/invite/KGbT45t6Ca' },
 ]
 </script>
 
@@ -30,7 +31,7 @@ const socialLinks = [
       <hr class="border-synth-purple/30 my-6" />
 
       <a
-        href="https://cafecito.app/tu-usuario"
+        href="https://cafecito.app/tehpon"
         target="_blank"
         class="block w-full py-3 px-4 bg-synth-pink border border-transparent rounded-lg text-slate-950 font-black tracking-wider transition-all duration-300 hover:bg-transparent hover:border-synth-pink hover:text-synth-pink hover:shadow-neon-pink"
       >
@@ -38,7 +39,7 @@ const socialLinks = [
       </a>
 
       <a
-        href="https://paypal.me/tu-usuario"
+        href="https://paypal.me/tehpon"
         target="_blank"
         class="block w-full py-3 px-4 bg-transparent border border-synth-cyan rounded-lg text-synth-cyan font-bold tracking-wider transition-all duration-300 hover:bg-synth-cyan hover:text-slate-950 hover:shadow-neon-cyan"
       >
