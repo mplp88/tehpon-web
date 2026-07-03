@@ -6,6 +6,7 @@ const games = ref([
   { id: 2, title: 'Pokemon Red', status: 'pendiente', votes: 2 },
   { id: 3, title: 'The Darkside Detective', status: 'pendiente', votes: 7 },
   { id: 4, title: 'Sonic 1', status: 'completado', votes: 20 },
+  { id: 5, title: "Don't Starve", status: 'completado', votes: 22 },
 ])
 
 const voteGame = (id: number) => {
@@ -61,7 +62,7 @@ const statusBadgeClass = (status: string) => {
             :disabled="game.status !== 'pendiente'"
             class="px-3 py-1.5 bg-slate-900 border border-synth-pink/60 rounded text-synth-pink text-sm font-bold transition-all duration-200 disabled:opacity-30 disabled:hover:bg-slate-900 disabled:hover:text-synth-pink disabled:hover:shadow-none hover:bg-synth-pink hover:text-slate-950 hover:shadow-neon-pink"
           >
-            ▲ VOTAR
+            VOTAR
           </button>
         </div>
       </div>
