@@ -65,3 +65,34 @@ body {
 .animate-flicker {
   animation: flicker 4s infinite alternate;
 }
+
+/* Custom Scrollbar Estilo Neón */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px; /* Bien fina para que no moleste */
+  height: 6px;
+}
+
+/* El fondo por donde corre la barra */
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(11, 8, 19, 0.6); /* El color synth-dark traslúcido */
+  border-radius: 10px;
+}
+
+/* La barra que se mueve (El tubo de neón) */
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-synth-pink); /* Usamos el fucsia/rosa de tu logo */
+  border-radius: 10px;
+  /* El truco del brillo de neón usando box-shadow */
+  box-shadow:
+    0 0 10px var(--color-synth-pink),
+    0 0 20px var(--color-synth-pink);
+}
+
+/* Cuando el usuario pasa el mouse por encima, cambia a cian para meterle interactividad */
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-synth-cyan);
+  box-shadow:
+    0 0 10px var(--color-synth-cyan),
+    0 0 20px var(--color-synth-cyan);
+  cursor: pointer;
+}

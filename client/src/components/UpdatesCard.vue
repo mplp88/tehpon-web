@@ -19,7 +19,7 @@ const updates = [
       Últimas Novedades
     </h2>
 
-    <div class="space-y-4">
+    <div class="space-y-4 max-h-125 overflow-y-auto pr-2 custom-scrollbar">
       <div
         v-for="update in updates"
         :key="update.id"
