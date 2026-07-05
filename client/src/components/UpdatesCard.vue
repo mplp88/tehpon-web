@@ -64,7 +64,7 @@ const openCreateModal = async () => {
 
   if (formValues?.title && formValues?.description) {
     try {
-      await axios.post(`${import.meta.env.API_URL}/api/updates`, formValues, {
+      await axios.post(`${API_URL}/api/updates`, formValues, {
         headers: { Authorization: `Bearer ${token.value}` },
       })
       fetchUpdates()
