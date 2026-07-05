@@ -1,9 +1,23 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
 
-const game = ref({
-  title: 'Gravity Circuit',
-  status: 'Jugando',
+interface IGame {
+  title: string
+}
+
+const currentGame = ref<IGame>({ title: '' })
+
+const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : ''
+
+const getCurrentGame = async () => {
+  const { data } = await axios.get(`${API_URL}/api/games/current-game`)
+  currentGame.value = data
+}
+
+onMounted(async () => {
+  await getCurrentGame()
+  console.log(currentGame.value)
 })
 </script>
 
@@ -14,19 +28,22 @@ const game = ref({
     <div class="background-flicker"></div>
 
     <div class="relative z-10 text-center">
-      <p class="text-synth-purple tracking-widest font-mono text-sm uppercase">Now Playing</p>
-      <h3 class="game-title text-white text-3xl font-black mt-2 tracking-tight">
-        {{ game.title }}
-      </h3>
+      <span v-if="!currentGame.title">
+        <p class="text-synth-purple tracking-widest font-mono text-sm uppercase">
+          Obteniendo información del juego actual...
+        </p>
+      </span>
+      <span v-else>
+        <p class="text-synth-purple tracking-widest font-mono text-sm uppercase">Now Playing</p>
+        <h3 class="game-title text-white text-3xl font-black mt-2 tracking-tight">
+          {{ currentGame.title }}
+        </h3>
+      </span>
     </div>
   </div>
 </template>
 
 <style scoped>
-.now-playing-container {
-  /* Fondo oscuro uniforme, sin textura de lunares */
-}
-
 /* Capa de brillo de fondo sutil */
 .background-flicker {
   position: absolute;

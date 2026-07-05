@@ -1,19 +1,68 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useAuth } from '@/composables/useAuth'
+import { useAlerts } from '@/composables/useAlerts'
+import axios from 'axios'
+import Swal from 'sweetalert2'
 
-const games = ref([
-  { id: 1, title: 'Gravity Circuit', status: 'jugando', votes: 50 },
-  { id: 2, title: 'Pokemon Red', status: 'pendiente', votes: 2 },
-  { id: 3, title: 'The Darkside Detective', status: 'pendiente', votes: 7 },
-  { id: 4, title: 'Sonic 1', status: 'completado', votes: 20 },
-  { id: 5, title: "Don't Starve", status: 'completado', votes: 22 },
-])
+interface IGame {
+  _id: number
+  title: string
+  status: string
+  votedBy: string[]
+}
 
-const voteGame = (id: number) => {
-  const game = games.value.find((g) => g.id === id)
-  if (game && game.status === 'pendiente') {
-    game.votes++ // Simulamos el voto de manera local
-    // Acá irá el POST a la API
+const { token, triggerAlert } = useAuth()
+const { showError, showVoteRemoved, showVoteSuccess } = useAlerts()
+
+const games = ref<IGame[]>([])
+const loading = ref(true)
+
+const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : ''
+
+const fetchGames = async () => {
+  try {
+    const res = await axios.get(`${API_URL}/api/games`)
+    const rawGames = res.data
+
+    games.value = rawGames.sort((a: IGame, b: IGame) => {
+      if (a.status === 'jugando') return -1
+      if (b.status === 'jugando') return 1
+      return (b.votedBy?.length || 0) - (a.votedBy?.length || 0)
+    })
+  } catch (error) {
+    showError((error as any).message)
+    console.error(error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const voteGame = async (id: number) => {
+  if (!token.value) {
+    triggerAlert()
+    return
+  }
+
+  try {
+    const { data } = await axios.post(`${API_URL}/api/games/${id}/vote`, null, {
+      headers: { Authorization: `Bearer ${token.value}` },
+    })
+
+    // Si sale todo bien, actualizamos el juego específico en el cliente para no recargar toda la lista
+    const index = games.value.findIndex((g) => g._id === id)
+    if (index !== -1) {
+      games.value[index] = data.game
+    }
+
+    if (data.action === 'vote') {
+      showVoteSuccess()
+    } else {
+      showVoteRemoved()
+    }
+  } catch (err) {
+    const errMsg = (err as any).response?.data?.message || 'Error al procesar el voto.'
+    showError(errMsg)
   }
 }
 
@@ -27,6 +76,10 @@ const statusBadgeClass = (status: string) => {
       return 'bg-amber-500/20 text-amber-400 border border-amber-500/50'
   }
 }
+
+onMounted(() => {
+  fetchGames()
+})
 </script>
 
 <template>
@@ -40,9 +93,13 @@ const statusBadgeClass = (status: string) => {
     </h2>
 
     <div class="space-y-4 max-h-125 overflow-y-auto pr-2 custom-scrollbar">
+      <div v-if="loading" class="text-center py-8 text-synth-purple animate-pulse font-mono">
+        ⏳ Sincronizando grilla de datos...
+      </div>
       <div
+        v-else
         v-for="game in games"
-        :key="game.id"
+        :key="game._id"
         class="p-4 bg-slate-950/80 border border-slate-800 rounded-lg flex items-center justify-between transition-all duration-300 hover:border-synth-purple/50"
       >
         <div>
@@ -56,9 +113,11 @@ const statusBadgeClass = (status: string) => {
         </div>
 
         <div class="flex items-center space-x-3">
-          <span class="text-sm font-mono text-synth-cyan font-bold">{{ game.votes }} pts</span>
+          <span class="text-sm font-mono text-synth-cyan font-bold"
+            >{{ game.votedBy.length }} pts</span
+          >
           <button
-            @click="voteGame(game.id)"
+            @click="voteGame(game._id)"
             :disabled="game.status !== 'pendiente'"
             class="px-3 py-1.5 bg-slate-900 border border-synth-pink/60 rounded text-synth-pink text-sm font-bold transition-all duration-200 disabled:opacity-30 disabled:hover:bg-slate-900 disabled:hover:text-synth-pink disabled:hover:shadow-none hover:bg-synth-pink hover:text-slate-950 hover:shadow-neon-pink"
           >
