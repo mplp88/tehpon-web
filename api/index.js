@@ -17,10 +17,13 @@ connectDB();
 app.get('/api/health', (req, res) => {
   res.json({ message: 'API is up' });
 });
+app.get('/health', (req, res) => {
+  res.json({ message: 'API is up' });
+});
 
-app.use('/api/games', gamesRoutes);
-app.use('/api/updates', updatesRoutes);
-app.use('/api/auth', authRoutes);
+app.use('/games', gamesRoutes);
+app.use('/updates', updatesRoutes);
+app.use('/auth', authRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

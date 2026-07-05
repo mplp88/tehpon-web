@@ -179,7 +179,7 @@ onMounted(async () => {
     <div v-if="loading" class="text-center py-8 text-synth-purple animate-pulse font-mono">
       ⏳ Leyendo bitácora...
     </div>
-    <div v-else class="space-y-4 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">
+    <div v-else class="space-y-4 max-h-112.5 overflow-y-auto pr-2 custom-scrollbar">
       <div
         v-for="item in updates"
         :key="item._id"
