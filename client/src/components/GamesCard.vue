@@ -3,7 +3,6 @@ import { ref, onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { useAlerts } from '@/composables/useAlerts'
 import axios from 'axios'
-import Swal from 'sweetalert2'
 
 interface IGame {
   _id: number
@@ -12,7 +11,7 @@ interface IGame {
   votedBy: string[]
 }
 
-const { token, triggerAlert } = useAuth()
+const { token, triggerAlert, user } = useAuth()
 const { showError, showVoteRemoved, showVoteSuccess } = useAlerts()
 
 const games = ref<IGame[]>([])
@@ -77,6 +76,38 @@ const statusBadgeClass = (status: string) => {
   }
 }
 
+const hasUserVoted = (game: IGame) => {
+  if (!user.value || !game.votedBy) return false
+  return game.votedBy.includes(user.value.id)
+}
+
+const getButtonText = (game: IGame) => {
+  if (game.status !== 'pendiente') return 'CERRADO'
+  return hasUserVoted(game) ? 'RETIRAR' : 'VOTAR'
+}
+const getButtonClassName = (game: IGame) => {
+  const baseClass = 'px-3 py-1.5 rounded text-sm font-mono font-bold transition-all duration-200 '
+
+  if (game.status !== 'pendiente') {
+    return (
+      baseClass +
+      'opacity-30 cursor-not-allowed bg-slate-900 border border-slate-700 text-slate-500'
+    )
+  }
+
+  if (hasUserVoted(game)) {
+    return (
+      baseClass +
+      'bg-slate-900 border border-synth-purple text-synth-purple hover:bg-synth-purple hover:text-white hover:shadow-neon-purple'
+    )
+  } else {
+    return (
+      baseClass +
+      'bg-slate-900 border border-synth-pink/60 text-synth-pink hover:bg-synth-pink hover:text-slate-950 hover:shadow-neon-pink'
+    )
+  }
+}
+
 onMounted(() => {
   fetchGames()
 })
@@ -119,9 +150,9 @@ onMounted(() => {
           <button
             @click="voteGame(game._id)"
             :disabled="game.status !== 'pendiente'"
-            class="px-3 py-1.5 bg-slate-900 border border-synth-pink/60 rounded text-synth-pink text-sm font-bold transition-all duration-200 disabled:opacity-30 disabled:hover:bg-slate-900 disabled:hover:text-synth-pink disabled:hover:shadow-none hover:bg-synth-pink hover:text-slate-950 hover:shadow-neon-pink"
+            :class="getButtonClassName(game)"
           >
-            VOTAR
+            {{ getButtonText(game) }}
           </button>
         </div>
       </div>
