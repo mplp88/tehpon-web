@@ -47,9 +47,17 @@ const openCreateModal = async () => {
     },
     buttonsStyling: false,
     preConfirm: () => {
+      const titleInput = Swal.getPopup()?.querySelector('#swal-title') as HTMLInputElement | null
+      const descInput = Swal.getPopup()?.querySelector('#swal-desc') as HTMLTextAreaElement | null
+
+      if (!titleInput?.value || !descInput?.value) {
+        Swal.showValidationMessage('Por favor completa ambos campos')
+        return false
+      }
+
       return {
-        title: document.getElementById('swal-title').value,
-        description: document.getElementById('swal-desc').value,
+        title: titleInput.value,
+        description: descInput.value,
       }
     },
   })
@@ -81,9 +89,17 @@ const openEditModal = async (item: IUpdate) => {
     },
     buttonsStyling: false,
     preConfirm: () => {
+      const titleInput = Swal.getPopup()?.querySelector('#swal-title') as HTMLInputElement | null
+      const descInput = Swal.getPopup()?.querySelector('#swal-desc') as HTMLTextAreaElement | null
+
+      if (!titleInput?.value || !descInput?.value) {
+        Swal.showValidationMessage('Por favor completa ambos campos')
+        return false
+      }
+
       return {
-        title: document.getElementById('swal-title').value,
-        description: document.getElementById('swal-desc').value,
+        title: titleInput.value,
+        description: descInput.value,
       }
     },
   })
