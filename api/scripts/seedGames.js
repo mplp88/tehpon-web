@@ -16,7 +16,7 @@ const notepadGames = [
   'GRIS',
   'Jet Set Radio',
   'Limbo',
-  'Nocturnal (Comprobar performance)',
+  'Nocturnal',
   'One Gun Guy',
   'Risk of Rain ',
   'Rogue Worlds',
