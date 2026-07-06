@@ -6,8 +6,11 @@ import NowPlaying from './components/NowPlaying.vue'
 
 import { onMounted, ref } from 'vue'
 import { useAuth } from './composables/useAuth'
+import { useRegisterSW } from 'virtual:pwa-register/vue'
 
 const { token, login, logout, checkHashToken } = useAuth()
+
+useRegisterSW()
 
 onMounted(() => {
   checkHashToken()
