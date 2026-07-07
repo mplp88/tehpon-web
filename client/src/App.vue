@@ -5,7 +5,7 @@ import UpdatesCard from '@/components/UpdatesCard.vue'
 import NowPlaying from '@/components/NowPlaying.vue'
 import LiveStatus from '@/components/LiveStatus.vue'
 
-import { onMounted, ref } from 'vue'
+import { onMounted } from 'vue'
 import { useAuth } from './composables/useAuth'
 import { useRegisterSW } from 'virtual:pwa-register/vue'
 import LoginButton from './components/LoginButton.vue'
