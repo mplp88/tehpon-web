@@ -17,7 +17,6 @@ const getCurrentGame = async () => {
 
 onMounted(async () => {
   await getCurrentGame()
-  console.log(currentGame.value)
 })
 </script>
 

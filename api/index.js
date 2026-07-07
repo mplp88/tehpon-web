@@ -5,6 +5,7 @@ import { connectDB } from './config/db.js';
 import gamesRoutes from './routes/games.js';
 import updatesRoutes from './routes/updates.js';
 import authRoutes from './routes/auth.js';
+import twitchRoutes from './routes/twitch.js';
 
 dotenv.config();
 
@@ -24,10 +25,12 @@ app.get('/health', (req, res) => {
 app.use('/api/games', gamesRoutes);
 app.use('/api/updates', updatesRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/twitch', twitchRoutes);
 
 app.use('/games', gamesRoutes);
 app.use('/updates', updatesRoutes);
 app.use('/auth', authRoutes);
+app.use('/twitch', twitchRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
