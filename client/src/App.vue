@@ -1,42 +1,32 @@
 <script setup lang="ts">
-import LinksCard from './components/LinksCard.vue'
-import GamesCard from './components/GamesCard.vue'
-import UpdatesCard from './components/UpdatesCard.vue'
-import NowPlaying from './components/NowPlaying.vue'
+import LinksCard from '@/components/LinksCard.vue'
+import GamesCard from '@/components/GamesCard.vue'
+import UpdatesCard from '@/components/UpdatesCard.vue'
+import NowPlaying from '@/components/NowPlaying.vue'
+import LiveStatus from '@/components/LiveStatus.vue'
 
-import { onMounted, ref } from 'vue'
+import { onMounted } from 'vue'
 import { useAuth } from './composables/useAuth'
 import { useRegisterSW } from 'virtual:pwa-register/vue'
+import LoginButton from './components/LoginButton.vue'
 
-const { token, login, logout, checkHashToken } = useAuth()
-
-useRegisterSW()
+const { checkHashToken } = useAuth()
 
 onMounted(() => {
   checkHashToken()
 })
+
+useRegisterSW()
 </script>
 
 <template>
   <div class="relative min-h-screen pb-12 px-4 md:px-8">
     <div class="synth-grid"></div>
 
-    <div class="max-w-7xl mx-auto flex justify-end pt-4">
-      <button
-        v-if="!token"
-        @click="login"
-        class="flex items-center space-x-2 px-4 py-2 bg-[#9146ff] border border-transparent rounded-lg text-white font-bold text-sm tracking-wide transition-all duration-300 hover:bg-transparent hover:border-[#9146ff] hover:text-[#9146ff] hover:shadow-[0_0_15px_rgba(145,70,255,0.6)]"
-      >
-        <i class="fab fa-twitch text-base"></i>
-        <span>CONECTAR TWITCH</span>
-      </button>
-      <button
-        v-else
-        @click="logout"
-        class="flex items-center space-x-2 px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-400 font-bold text-sm tracking-wide transition-all duration-300 hover:text-synth-pink hover:border-synth-pink"
-      >
-        <span>CERRAR SESIÓN</span>
-      </button>
+    <div class="max-w-7xl mx-auto flex justify-between items-center pt-4 px-4">
+      <LiveStatus />
+
+      <LoginButton />
     </div>
 
     <header class="flex flex-col items-center justify-center pt-8 pb-10">
@@ -46,7 +36,9 @@ onMounted(() => {
         class="w-32 h-32 rounded-full object-contain filter drop-shadow-[0_0_25px_rgba(255,0,127,0.5)] transition-transform duration-500 hover:scale-105"
       />
 
-      <p class="text-synth-cyan tracking-[0.3em] font-mono uppercase text-sm mt-4 text-center">
+      <p
+        class="text-synth-cyan tracking-[0.3em] font-mono uppercase text-xs md:text-lg mt-4 text-center"
+      >
         Streamer • Developer • Gamer
       </p>
 

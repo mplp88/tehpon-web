@@ -8,7 +8,7 @@ const isAdmin = ref(localStorage.getItem('is_streamer_admin') === 'true')
 const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : ''
 
 export function useAuth() {
-  const TWITCH_CLIENT_ID = '6qmh0lqbxoyrr6eq1vrevhwdprwf22'
+  const TWITCH_CLIENT_ID = '37bkoyr1uulopujj9bc5dm2ew84hyq'
   const REDIRECT_URI =
     window.location.hostname === 'localhost' || window.location.hostname.includes('192.168.1')
       ? 'http://localhost:5173'
