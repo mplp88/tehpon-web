@@ -110,6 +110,9 @@ const getButtonClassName = (game: IGame) => {
 
 onMounted(() => {
   fetchGames()
+  setInterval(() => {
+    fetchGames()
+  }, 5 * 60 * 1000)
 })
 </script>
 
