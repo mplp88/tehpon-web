@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["api/**/*.ts", "web-api/**/*.ts"]
+  "include": ["api/**/*.ts", "web-api/**/*.ts", "index.ts"]
 }
