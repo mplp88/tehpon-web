@@ -1,6 +1,12 @@
-import mongoose from 'mongoose';
+import { Schema, model, Document } from 'mongoose';
 
-const gameSchema = new mongoose.Schema(
+export interface IGame extends Document {
+  title: string;
+  status: string;
+  votedBy: string[];
+}
+
+const gameSchema = new Schema<IGame>(
   {
     title: {
       type: String,
@@ -28,4 +34,4 @@ gameSchema.virtual('voteCount').get(function () {
 
 gameSchema.set('toJSON', { virtuals: true });
 
-export default mongoose.model('Game', gameSchema);
+export default model<IGame>('Game', gameSchema);

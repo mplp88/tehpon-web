@@ -1,10 +1,14 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import axios from 'axios';
 import Update from '../models/Update.js';
 
 const router = express.Router();
 
-const requireStreamerAdmin = async (req, res, next) => {
+const requireStreamerAdmin = async (
+  req: Request,
+  res: Response,
+  next: Function,
+) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'No autorizado. Token ausente.' });
@@ -33,6 +37,7 @@ const requireStreamerAdmin = async (req, res, next) => {
 
     next();
   } catch (error) {
+    console.log((error as Error).message);
     return res
       .status(401)
       .json({ message: 'Token de Twitch inválido o vencido.' });
@@ -44,7 +49,8 @@ router.get('/', async (req, res) => {
     const updates = await Update.find().sort({ createdAt: -1 }); // Las más nuevas arriba
     res.json(updates);
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener novedades.' });
+    console.log((error as Error).message);
+    return res.status(500).json({ message: 'Error al obtener novedades.' });
   }
 });
 
@@ -54,7 +60,8 @@ router.post('/', requireStreamerAdmin, async (req, res) => {
     const newUpdate = await Update.create({ title, description });
     res.status(201).json(newUpdate);
   } catch (error) {
-    res.status(400).json({ message: 'Error al crear la novedad.' });
+    console.log((error as Error).message);
+    return res.status(400).json({ message: 'Error al crear la novedad.' });
   }
 });
 
@@ -65,7 +72,8 @@ router.put('/:id', requireStreamerAdmin, async (req, res) => {
     });
     res.json(updated);
   } catch (error) {
-    res.status(400).json({ message: 'Error al actualizar.' });
+    console.log((error as Error).message);
+    return res.status(400).json({ message: 'Error al actualizar.' });
   }
 });
 
@@ -74,7 +82,8 @@ router.delete('/:id', requireStreamerAdmin, async (req, res) => {
     await Update.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'Novedad eliminada.' });
   } catch (error) {
-    res.status(500).json({ message: 'Error al eliminar.' });
+    console.log((error as Error).message);
+    return res.status(500).json({ message: 'Error al eliminar.' });
   }
 });
 

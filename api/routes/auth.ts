@@ -41,7 +41,8 @@ router.get('/me', async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(401).json({ isAdmin: false, user: null });
+    console.error((error as Error).message);
+    res.status(401).json({ isAdmin: false, user: null });
   }
 });
 

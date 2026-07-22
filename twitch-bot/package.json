@@ -1,0 +1,28 @@
+{
+  "name": "tehpon-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.js",
+    "build": "tsc",
+    "test-duels": "tsx src/scripts/test-duels.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@twurple/auth": "^8.1.4",
+    "@twurple/chat": "^8.1.4",
+    "dotenv": "^17.4.2",
+    "mongoose": "^9.7.2",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}
+
