@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectDB } from '../config/db.js';
@@ -15,19 +15,19 @@ app.use(express.json());
 
 connectDB();
 
-app.get('/api/health', (req, res) => {
-  res.json({ message: 'API is up' });
-});
+// app.get('/api/health', (req, res) => {
+//   res.json({ message: 'API is up' });
+// });
 app.get('/health', (req, res) => {
   res.json({ message: 'API is up' });
 });
 
 //Rutas espejadas para ver si funciona en vercel
-app.use('/api/games', gamesRoutes);
-app.use('/api/updates', updatesRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/twitch', twitchRoutes);
-app.use('/api/commands', twitchRoutes);
+// app.use('/api/games', gamesRoutes);
+// app.use('/api/updates', updatesRoutes);
+// app.use('/api/auth', authRoutes);
+// app.use('/api/twitch', twitchRoutes);
+// app.use('/api/commands', twitchRoutes);
 
 app.use('/games', gamesRoutes);
 app.use('/updates', updatesRoutes);
@@ -35,14 +35,17 @@ app.use('/auth', authRoutes);
 app.use('/twitch', twitchRoutes);
 app.use('/commands', twitchRoutes);
 
-app.use((err: unknown, _: Request, res: Response) => {
-  console.error((err as any).stack);
-  res.status(500).send('Algo salió mal en el servidor');
+// Middleware de manejo de errores
+app.use((err: unknown, _: Request, res: Response, __: NextFunction) => {
+  console.error(err instanceof Error ? err.stack : err);
+  res.status(500).json({ error: 'Algo salió mal en el servidor' });
 });
 
+// Escuchar puerto en desarrollo local
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-  app.listen(3000, () => {
-    console.log('Servidor escuchando en http://localhost:3000');
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Servidor escuchando en http://localhost:${PORT}`);
   });
 }
 
