@@ -23,17 +23,17 @@ app.get('/api/health', (req, res) => {
 // });
 
 //Rutas espejadas para ver si funciona en vercel
-app.use('/api/games', gamesRoutes);
-app.use('/api/updates', updatesRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/twitch', twitchRoutes);
-app.use('/api/commands', twitchRoutes);
+// app.use('/api/games', gamesRoutes);
+// app.use('/api/updates', updatesRoutes);
+// app.use('/api/auth', authRoutes);
+// app.use('/api/twitch', twitchRoutes);
+// app.use('/api/commands', twitchRoutes);
 
-// app.use('/games', gamesRoutes);
-// app.use('/updates', updatesRoutes);
-// app.use('/auth', authRoutes);
-// app.use('/twitch', twitchRoutes);
-// app.use('/commands', twitchRoutes);
+app.use('/games', gamesRoutes);
+app.use('/updates', updatesRoutes);
+app.use('/auth', authRoutes);
+app.use('/twitch', twitchRoutes);
+app.use('/commands', twitchRoutes);
 
 // Middleware de manejo de errores
 app.use((err: unknown, _: Request, res: Response, __: NextFunction) => {
