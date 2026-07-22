@@ -1,3 +1,3 @@
-import app from '../web-api/api/index';
+import app from '../web-api/api/index.js';
 
 export default app;

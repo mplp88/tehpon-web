@@ -1,11 +1,5 @@
 {
   "framework": "vite",
   "buildCommand": "cd client && npm run build",
-  "outputDirectory": "client/dist",
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/web-api/api/index.ts"
-    }
-  ]
+  "outputDirectory": "client/dist"
 }
