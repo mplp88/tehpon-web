@@ -1,1 +1,3 @@
-import { default } from '../web-api/api/index.js';
+const { default: app } = await import('../web-api/api/index.js');
+
+export default app;
