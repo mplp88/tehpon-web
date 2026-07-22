@@ -1,15 +1,15 @@
 import express from 'express';
-import axios from 'axios';
+import axios, { AxiosError, AxiosResponse } from 'axios';
 
 const router = express.Router();
 
 // Guardamos el token en memoria para no pedirlo a Twitch en cada click
-let appAccessToken = null;
+let appAccessToken: string | null = null;
 
 const getAppToken = async () => {
   const url = `https://id.twitch.tv/oauth2/token?client_id=${process.env.TWITCH_CLIENT_ID}&client_secret=${process.env.TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
   const res = await axios.post(url);
-  appAccessToken = res.data.access_token;
+  appAccessToken = res.data?.access_token as string;
 };
 
 router.get('/status', async (req, res) => {
@@ -29,7 +29,7 @@ router.get('/status', async (req, res) => {
         },
       });
     } catch (err) {
-      if (err.response?.status === 401) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
         await getAppToken();
         twitchRes = await axios.get(url, {
           headers: {
@@ -49,6 +49,7 @@ router.get('/status', async (req, res) => {
       streamData: isLive ? twitchRes.data.data[0] : null,
     });
   } catch (error) {
+    console.error((error as Error).message);
     return res
       .status(500)
       .json({ isLive: false, error: 'Error al consultar Twitch' });

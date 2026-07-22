@@ -1,0 +1,6 @@
+Pendientes
+
+Pensar sistema de "evolución" de clase Ej: Guerrero -> Paladín
+                                                    -> Caballero oscuro
+Agregar clase Clérigo -> Trait: Self Heal. (Sería el pj con menos HP, pero con la capacidad de curarse para aguantar)
+Agregar tipo de item Accesorio
