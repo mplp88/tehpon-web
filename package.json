@@ -8,8 +8,5 @@
   "scripts": {
     "build": "cd client && npm install && npm run build",
     "postinstall": "cd web-api && npm install"
-  },
-  "devDependencies": {
-    "typescript": "^7.0.2"
   }
 }
