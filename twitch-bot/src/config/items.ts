@@ -38,7 +38,7 @@ export const ITEM_DATABASE: Record<string, IGameItem> = {
     name: '🪵 Espada de Madera',
     type: 'weapon',
     exclusiveClass: 'Guerrero',
-    statBonus: { fuerza: 12 },
+    statBonus: { fuerza: 8 },
   },
   escudo_cuero: {
     id: 'escudo_cuero',
@@ -53,14 +53,14 @@ export const ITEM_DATABASE: Record<string, IGameItem> = {
     name: '🎚️ Dagas de Hierro',
     type: 'weapon',
     exclusiveClass: 'Pícaro',
-    statBonus: { destreza: 14, critMultiplier: 1.2 },
+    statBonus: { destreza: 14, critMultiplier: 1.1 },
   },
   capa_sombras: {
     id: 'capa_sombras',
     name: '🧥 Capa de Sombras',
     type: 'armor',
     exclusiveClass: 'Pícaro',
-    statBonus: { defense: 4, destreza: 4 },
+    statBonus: { defense: 6, destreza: 4 },
   },
 
   baculo_gastado: {
@@ -83,14 +83,14 @@ export const ITEM_DATABASE: Record<string, IGameItem> = {
     name: '🗡️ Espada de Hierro',
     type: 'weapon',
     exclusiveClass: 'Guerrero',
-    statBonus: { fuerza: 30 },
+    statBonus: { fuerza: 25 },
   },
   hacha_batalla: {
     id: 'hacha_batalla',
     name: '🪓 Hacha de Batalla Pesada',
     type: 'weapon',
     exclusiveClass: 'Guerrero',
-    statBonus: { fuerza: 45 },
+    statBonus: { fuerza: 32 },
   },
   armadura_placas: {
     id: 'armadura_placas',
@@ -112,14 +112,14 @@ export const ITEM_DATABASE: Record<string, IGameItem> = {
     name: '🐾 Garras de las Sombras',
     type: 'weapon',
     exclusiveClass: 'Pícaro',
-    statBonus: { destreza: 22, critMultiplier: 1.5 },
+    statBonus: { destreza: 35, critMultiplier: 1.5 },
   },
   jubon_tachonado: {
     id: 'jubon_tachonado',
     name: '🧥 Jubón Tachonado',
     type: 'armor',
     exclusiveClass: 'Pícaro',
-    statBonus: { defense: 14, destreza: 5 },
+    statBonus: { defense: 16, destreza: 5 },
   },
 
   baculo_cristal: {
@@ -131,7 +131,7 @@ export const ITEM_DATABASE: Record<string, IGameItem> = {
   },
   libro_hechizos: {
     id: 'libro_hechizos',
-    name: '📖 Grimorio Ancestral',
+    name: '📖 Libro de Hechizos',
     type: 'weapon',
     exclusiveClass: 'Mago',
     statBonus: { inteligencia: 50 },
@@ -141,6 +141,6 @@ export const ITEM_DATABASE: Record<string, IGameItem> = {
     name: '🔮 Túnica de Archimago',
     type: 'armor',
     exclusiveClass: 'Mago',
-    statBonus: { spDefense: 25, inteligencia: 4 },
+    statBonus: { spDefense: 20, inteligencia: 4 },
   },
 };
