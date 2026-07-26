@@ -179,9 +179,12 @@ async function main(): Promise<void> {
   await commandManager.loadCommands();
 
   // (Opcional) Refrescar la caché cada 5 minutos por si agregás un comando desde la web
-  // setInterval(() => {
-  //   commandManager.loadCommands();
-  // }, 5 * 60 * 1000);
+  setInterval(
+    () => {
+      commandManager.loadCommands();
+    },
+    5 * 60 * 1000,
+  );
 
   const clientId = process.env.CLIENT_ID;
   const accessToken = process.env.TWITCH_ACCESS_TOKEN;
@@ -247,6 +250,10 @@ async function main(): Promise<void> {
 
     if (command === '!comandos') {
       chatClient.say(channel, commandManager.getCommandsListMessage());
+      chatClient.say(
+        channel,
+        'Mirá todos los comandos disponibles en https://tehpon.martinponce.com.ar/commands',
+      );
       return;
     }
 
