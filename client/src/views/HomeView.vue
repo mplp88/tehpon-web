@@ -42,8 +42,8 @@ import NowPlaying from '@/components/NowPlaying.vue'
     <!-- Main Grid exacto de 3 columnas para Desktop -->
     <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
       <LinksCard />
-      <CommandsCard />
       <GamesCard />
+      <CommandsCard />
       <UpdatesCard class="lg:col-span-3" />
     </main>
   </div>

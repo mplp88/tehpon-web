@@ -34,22 +34,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// const COOLDOWN_TIEMPO = 30 * 1000; // 30 segundos en milisegundos
-// let ultimoSonidoDisparado = 0;
-
-// // Agregado de sonidos al Bot
-// const SOUND_COMMANDS: Record<
-//   string,
-//   { sound: string; image: string; message: (user: string) => string }
-// > = {
-//   '!rickroll': {
-//     sound: 'rickroll.mp3',
-//     image: 'rickroll.gif',
-//     message: (user) =>
-//       `🎶 ¡@${user} acaba de rickrollear al stream! Never Gonna Give You Up...`,
-//   },
-// };
-
 interface IDuelChallenge {
   challenger: string;
   target: string;
@@ -176,8 +160,6 @@ function startAutomaticTimers(chatClient: ChatClient, channel: string): void {
 }
 
 async function main(): Promise<void> {
-  await commandManager.loadCommands();
-
   // (Opcional) Refrescar la caché cada 5 minutos por si agregás un comando desde la web
   setInterval(
     () => {
@@ -231,22 +213,6 @@ async function main(): Promise<void> {
       chatLinesCounter++;
       return;
     }
-
-    // if (command === '!ponbot') {
-    //   chatClient.say(
-    //     channel,
-    //     `Hola! Estoy corriendo en segundo plano y listo para recibir tus comandos`,
-    //   );
-    //   return;
-    // }
-
-    // if (command === '!comandos') {
-    //   chatClient.say(
-    //     channel,
-    //     `Esta es una lista de los comandos disponibles: !aventura, !clase, !stats, !gold, !duelo, !aceptar, !atacar, !mob, !rickroll`,
-    //   );
-    //   return;
-    // }
 
     if (command === '!comandos') {
       chatClient.say(channel, commandManager.getCommandsListMessage());
@@ -724,6 +690,32 @@ async function main(): Promise<void> {
       return;
     }
 
+    if (command === '!tts') {
+      const message = args.slice(1).join(' ');
+      if (!message) {
+        // Opcional: podrías responderle en el chat de Twitch que falta el texto
+        chatClient.say(
+          channel,
+          `⚠️ @${user}, para usar el comando tts tenés que escribir el texto '!tts <texto>' (sin los <> 😅)`,
+        );
+        console.log(`@${user} no envió texto para el TTS.`);
+        return;
+      }
+
+      // Sanitizamos o limitamos la longitud para evitar spam/abuso de lectura
+      const cleanText = `${user} dice: ${message.substring(0, 200)}`;
+
+      io.emit('trigger-alert', {
+        message: cleanText,
+        username: user,
+        isTts: true, // <-- Flag clave para que el Front sepa qué hacer
+        image: null, //|| 'tts-default.gif', // Imagen fija o por defecto si querés
+        sound: null, // No mandamos archivo de audio
+      });
+
+      return;
+    }
+
     const cmd = commandManager.getCommand(command);
 
     if (cmd) {
@@ -759,43 +751,13 @@ async function main(): Promise<void> {
       // 4. Marcar timestamp para el cooldown
       commandManager.registerUsage(command);
     }
-
-    // if (command === '!rickroll') {
-    //   const ahora = Date.now();
-    //   const tiempoPasado = ahora - ultimoSonidoDisparado;
-
-    //   // Verificamos si todavía estamos dentro del tiempo de espera
-    //   if (tiempoPasado < COOLDOWN_TIEMPO) {
-    //     const segundosRestantes = Math.ceil(
-    //       (COOLDOWN_TIEMPO - tiempoPasado) / 1000,
-    //     );
-
-    //     chatClient.say(
-    //       channel,
-    //       `⏳ @${user}, el sistema de audio está en enfriamiento. Faltan ${segundosRestantes} segundos para poder volver a mandar otro audio.`,
-    //     );
-    //     return; // Frenamos la ejecución para que no suene nada
-    //   }
-
-    //   const alert = SOUND_COMMANDS[command];
-    //   const { sound, image, message } = alert;
-
-    //   io.emit('trigger-alert', {
-    //     sound,
-    //     image,
-    //     message: message(user),
-    //   });
-
-    //   chatClient.say(channel, message(user));
-
-    //   ultimoSonidoDisparado = Date.now();
-    // }
   });
 
   mongoose
     .connect(mongoDbUri)
     .then(() => {
       console.log('Conectado a MongoDB');
+      commandManager.loadCommands();
     })
     .catch((err) => {
       console.error('Error al conectar a MongoDB:', err);

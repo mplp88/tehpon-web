@@ -27,9 +27,9 @@ export class CommandManager {
 
   public async loadCommands(): Promise<void> {
     try {
-      const response = await axios.get<CommandFromApi[]>(
-        `${this.apiUrl}/api/commands`,
-      );
+      const url = `${this.apiUrl}/api/commands`;
+      console.log(`[TehPonBot] Descargando los comandos de ${url}`);
+      const response = await axios.get<CommandFromApi[]>(url);
       const commands = response.data;
 
       this.cache.clear();
