@@ -6,6 +6,7 @@ import gamesRoutes from './routes/games.js';
 import updatesRoutes from './routes/updates.js';
 import authRoutes from './routes/auth.js';
 import twitchRoutes from './routes/twitch.js';
+import commandsRoutes from './routes/commands.js';
 
 dotenv.config();
 
@@ -27,7 +28,7 @@ app.use('/api/games', gamesRoutes);
 app.use('/api/updates', updatesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/twitch', twitchRoutes);
-app.use('/api/commands', twitchRoutes);
+app.use('/api/commands', commandsRoutes);
 
 // app.use('/games', gamesRoutes);
 // app.use('/updates', updatesRoutes);

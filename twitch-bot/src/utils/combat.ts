@@ -91,7 +91,7 @@ export function simulateCombat(p1: Combatant, p2: Combatant): ICombatResult {
     // --- TRAIT: PÍCARO (CRÍTICO) ---
     let isCrit = false;
     if (attacker.class === 'Pícaro') {
-      const critChance = Math.min(0.5, attacker.destreza / 250);
+      const critChance = Math.min(0.5, attacker.destreza / 150);
       if (Math.random() < critChance) {
         isCrit = true;
         hitDamage = Math.floor(hitDamage * attacker.critMultiplier);
@@ -105,7 +105,7 @@ export function simulateCombat(p1: Combatant, p2: Combatant): ICombatResult {
     // --- TRAIT: GUERRERO (BLOQUEO) ---
     let blocked = false;
     if (defender.class === 'Guerrero') {
-      const blockChance = Math.min(0.45, defender.defense / 150);
+      const blockChance = Math.min(0.35, defender.defense / 150);
       if (Math.random() < blockChance) {
         blocked = true;
         finalDamage = Math.floor(finalDamage * 0.2); // Mitiga el 80%
@@ -138,7 +138,7 @@ export function simulateCombat(p1: Combatant, p2: Combatant): ICombatResult {
 
     // --- TRAIT: MAGO (QUEMAR - 10% DE CHANCE) ---
     if (attacker.class === 'Mago' && defHp > 0) {
-      if (Math.random() < 0.1) {
+      if (Math.random() < 0.15) {
         // 10% de probabilidad fija
         if (p1Turn) {
           burnTicksP2 = 3; // Quema por los próximos 3 turnos del defensor

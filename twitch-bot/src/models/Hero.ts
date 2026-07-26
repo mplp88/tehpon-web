@@ -71,8 +71,8 @@ heroSchema.virtual('stats').get(function (this: IHero) {
     critMult = 1.2;
 
   if (this.class === 'Guerrero') {
-    fuerza += lvl * 3;
-    vitalidad += lvl * 4;
+    fuerza += lvl * 2;
+    vitalidad += lvl * 3;
   } else if (this.class === 'Pícaro') {
     destreza += lvl * 4;
     vitalidad += lvl * 2;

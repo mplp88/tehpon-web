@@ -8,6 +8,10 @@ import { Combatant, simulateCombat } from './utils/combat.js';
 import { AUTOMATIC_MESSAGES } from './config/timers.js';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import { CommandManager } from './services/CommandManager.js';
+
+const API_URL = process.env.API_URL || 'http://localhost:3000';
+const commandManager = new CommandManager(API_URL);
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
@@ -30,21 +34,21 @@ io.on('connection', (socket) => {
   });
 });
 
-const COOLDOWN_TIEMPO = 30 * 1000; // 30 segundos en milisegundos
-let ultimoSonidoDisparado = 0;
+// const COOLDOWN_TIEMPO = 30 * 1000; // 30 segundos en milisegundos
+// let ultimoSonidoDisparado = 0;
 
-// Agregado de sonidos al Bot
-const SOUND_COMMANDS: Record<
-  string,
-  { sound: string; image: string; message: (user: string) => string }
-> = {
-  '!rickroll': {
-    sound: 'rickroll.mp3',
-    image: 'rickroll.gif',
-    message: (user) =>
-      `🎶 ¡@${user} acaba de rickrollear al stream! Never Gonna Give You Up...`,
-  },
-};
+// // Agregado de sonidos al Bot
+// const SOUND_COMMANDS: Record<
+//   string,
+//   { sound: string; image: string; message: (user: string) => string }
+// > = {
+//   '!rickroll': {
+//     sound: 'rickroll.mp3',
+//     image: 'rickroll.gif',
+//     message: (user) =>
+//       `🎶 ¡@${user} acaba de rickrollear al stream! Never Gonna Give You Up...`,
+//   },
+// };
 
 interface IDuelChallenge {
   challenger: string;
@@ -172,6 +176,13 @@ function startAutomaticTimers(chatClient: ChatClient, channel: string): void {
 }
 
 async function main(): Promise<void> {
+  await commandManager.loadCommands();
+
+  // (Opcional) Refrescar la caché cada 5 minutos por si agregás un comando desde la web
+  // setInterval(() => {
+  //   commandManager.loadCommands();
+  // }, 5 * 60 * 1000);
+
   const clientId = process.env.CLIENT_ID;
   const accessToken = process.env.TWITCH_ACCESS_TOKEN;
   const channel = process.env.TWITCH_CHANNEL;
@@ -218,9 +229,24 @@ async function main(): Promise<void> {
       return;
     }
 
-    if (command === '!ping') {
-      chatClient.say(channel, `Pong!`);
-      console.log(`${user} llamo al comando !ping`);
+    // if (command === '!ponbot') {
+    //   chatClient.say(
+    //     channel,
+    //     `Hola! Estoy corriendo en segundo plano y listo para recibir tus comandos`,
+    //   );
+    //   return;
+    // }
+
+    // if (command === '!comandos') {
+    //   chatClient.say(
+    //     channel,
+    //     `Esta es una lista de los comandos disponibles: !aventura, !clase, !stats, !gold, !duelo, !aceptar, !atacar, !mob, !rickroll`,
+    //   );
+    //   return;
+    // }
+
+    if (command === '!comandos') {
+      chatClient.say(channel, commandManager.getCommandsListMessage());
       return;
     }
 
@@ -288,7 +314,7 @@ async function main(): Promise<void> {
 
         chatClient.say(
           channel,
-          `🎒 Héroe @${user} [${hero.class} Nv.${hero.level}] tus stats son: 🌟 Fuerza: ${stats.fuerza} | 🌟 Vitalidad: ${stats.vitalidad} | 🌟 Destreza: ${stats.destreza} | 🌟 inteligencia: ${stats.inteligencia} | 🌟 Defensa: ${stats.defense} | 🌟 Defensa Especial: ${stats.spDefense} | 🌟 HP: ${stats.maxHp} |`,
+          `🎒 Héroe @${user} [${hero.class} Nv.${hero.level}] tus stats son: 🌟 Fuerza: ${stats.fuerza} | 🌟 Vitalidad: ${stats.vitalidad} | 🌟 Destreza: ${stats.destreza} | 🌟 inteligencia: ${stats.inteligencia} | 🌟 Defensa: ${stats.defense} | 🌟 Defensa Especial: ${stats.spDefense} | 🌟 HP: ${stats.maxHp}`,
         );
       } catch (err) {
         console.error(err);
@@ -691,36 +717,72 @@ async function main(): Promise<void> {
       return;
     }
 
-    if (command === '!rickroll') {
-      const ahora = Date.now();
-      const tiempoPasado = ahora - ultimoSonidoDisparado;
+    const cmd = commandManager.getCommand(command);
 
-      // Verificamos si todavía estamos dentro del tiempo de espera
-      if (tiempoPasado < COOLDOWN_TIEMPO) {
-        const segundosRestantes = Math.ceil(
-          (COOLDOWN_TIEMPO - tiempoPasado) / 1000,
-        );
-
+    if (cmd) {
+      // 1. Verificar Cooldown
+      const secondsLeft = commandManager.checkCooldown(command);
+      if (secondsLeft > 0) {
         chatClient.say(
           channel,
-          `⏳ @${user}, el sistema de audio está en enfriamiento. Faltan ${segundosRestantes} segundos para poder volver a mandar otro audio.`,
+          `⏳ @${user}, el comando "${command}" está en enfriamiento. Faltan ${secondsLeft}s.`,
         );
-        return; // Frenamos la ejecución para que no suene nada
+        return;
       }
 
-      const alert = SOUND_COMMANDS[command];
-      const { sound, image, message } = alert;
+      // Formatear el mensaje si existe (remplaza {user} por el nombre del viewer)
+      const formattedMessage = cmd.chatResponse
+        ? commandManager.formatMessage(cmd.chatResponse, user)
+        : null;
 
-      io.emit('trigger-alert', {
-        sound,
-        image,
-        message: message(user),
-      });
+      // 2. Disparar evento a OBS/Overlay mediante WebSockets si tiene media asociado
+      if (cmd.media?.soundFile || cmd.media?.imageFile) {
+        io.emit('trigger-alert', {
+          sound: cmd.media.soundFile,
+          image: cmd.media.imageFile,
+          message: formattedMessage || `¡@${user} usó ${cmd.name}!`,
+        });
+      }
 
-      chatClient.say(channel, message(user));
+      // 3. Responder en el chat de Twitch
+      if (formattedMessage) {
+        chatClient.say(channel, formattedMessage);
+      }
 
-      ultimoSonidoDisparado = Date.now();
+      // 4. Marcar timestamp para el cooldown
+      commandManager.registerUsage(command);
     }
+
+    // if (command === '!rickroll') {
+    //   const ahora = Date.now();
+    //   const tiempoPasado = ahora - ultimoSonidoDisparado;
+
+    //   // Verificamos si todavía estamos dentro del tiempo de espera
+    //   if (tiempoPasado < COOLDOWN_TIEMPO) {
+    //     const segundosRestantes = Math.ceil(
+    //       (COOLDOWN_TIEMPO - tiempoPasado) / 1000,
+    //     );
+
+    //     chatClient.say(
+    //       channel,
+    //       `⏳ @${user}, el sistema de audio está en enfriamiento. Faltan ${segundosRestantes} segundos para poder volver a mandar otro audio.`,
+    //     );
+    //     return; // Frenamos la ejecución para que no suene nada
+    //   }
+
+    //   const alert = SOUND_COMMANDS[command];
+    //   const { sound, image, message } = alert;
+
+    //   io.emit('trigger-alert', {
+    //     sound,
+    //     image,
+    //     message: message(user),
+    //   });
+
+    //   chatClient.say(channel, message(user));
+
+    //   ultimoSonidoDisparado = Date.now();
+    // }
   });
 
   mongoose
