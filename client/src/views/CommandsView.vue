@@ -159,7 +159,6 @@ const deleteCommand = async (id: string) => {
 }
 
 onMounted(async () => {
-  debugger
   await fetchCommands()
 })
 </script>

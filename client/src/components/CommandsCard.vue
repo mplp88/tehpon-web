@@ -18,7 +18,7 @@ const fetchPreviewCommands = async () => {
   try {
     const res = await axios.get(`${API_URL}/api/commands`)
     if (res.data) {
-      const { data } = await res.data
+      const { data } = res
       commands.value = data.slice(0, 4) // Mostramos solo los primeros 4
     }
   } catch (err) {
@@ -28,7 +28,9 @@ const fetchPreviewCommands = async () => {
   }
 }
 
-onMounted(fetchPreviewCommands)
+onMounted(async () => {
+  await fetchPreviewCommands()
+})
 </script>
 
 <template>
@@ -51,7 +53,9 @@ onMounted(fetchPreviewCommands)
           class="p-3 bg-slate-950/60 border border-synth-cyan/30 rounded-lg flex items-center justify-between"
         >
           <span class="font-mono font-bold text-synth-pink">{{ cmd.name }}</span>
-          <span class="text-xs text-slate-300 truncate max-w-[140px]">{{ cmd.description }}</span>
+          <span class="text-xs text-slate-300 truncate max-w-35" :title="cmd.description">{{
+            cmd.description
+          }}</span>
         </div>
       </div>
     </div>
