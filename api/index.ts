@@ -7,6 +7,7 @@ import updatesRoutes from './routes/updates.js';
 import authRoutes from './routes/auth.js';
 import twitchRoutes from './routes/twitch.js';
 import commandsRoutes from './routes/commands.js';
+import storiesRoutes from './routes/stories.js';
 
 dotenv.config();
 
@@ -29,6 +30,7 @@ app.use('/api/updates', updatesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/twitch', twitchRoutes);
 app.use('/api/commands', commandsRoutes);
+app.use('/api/stories', storiesRoutes);
 
 // app.use('/games', gamesRoutes);
 // app.use('/updates', updatesRoutes);
@@ -41,6 +43,12 @@ app.use((err: unknown, _: Request, res: Response, __: NextFunction) => {
   console.error(err instanceof Error ? err.stack : err);
   res.status(500).json({ error: 'Algo salió mal en el servidor' });
 });
+
+// TODO: Borrar antes de pasar a producción
+import { fileURLToPath } from 'url';
+import path from 'path';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Escuchar puerto en desarrollo local
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
