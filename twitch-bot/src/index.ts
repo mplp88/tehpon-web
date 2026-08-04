@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { StaticAuthProvider } from '@twurple/auth';
 import { ChatClient } from '@twurple/chat';
+import { ApiClient } from '@twurple/api';
 import mongoose from 'mongoose';
 import { Hero, HeroClass } from './models/Hero.js';
 import { ITEM_DATABASE } from './config/items.js';
@@ -185,6 +186,10 @@ async function main(): Promise<void> {
   const chatClient = new ChatClient({
     authProvider,
     channels: [channel],
+  });
+
+  const apiClient = new ApiClient({
+    authProvider,
   });
 
   chatClient.onConnect(() => {
@@ -711,6 +716,53 @@ async function main(): Promise<void> {
         isTts: true, // <-- Flag clave para que el Front sepa qué hacer
         image: null, //|| 'tts-default.gif', // Imagen fija o por defecto si querés
         sound: null, // No mandamos archivo de audio
+      });
+
+      return;
+    }
+
+    if (command === '!so') {
+      const name = args[1]?.toLowerCase().replace('@', '');
+
+      if (!name) {
+        // Opcional: podrías responderle en el chat de Twitch que falta el texto
+        chatClient.say(
+          channel,
+          `⚠️ @${user}, para usar el comando so tenés que escribir el nombre del streamer '!so <streamer>'`,
+        );
+        console.log(`@${user} no envió el nombre del streamer para el SO.`);
+        return;
+      }
+
+      const apiUser = await apiClient.users.getUserByName(name);
+      if (apiUser == null) {
+        chatClient.say(channel, `No pude encontrar al streamer '@${name}'`);
+        return;
+      }
+
+      const channelInfo = await apiClient.channels.getChannelInfoById(
+        apiUser.id,
+      );
+
+      const gameName = channelInfo?.gameName;
+
+      const clips = await apiClient.clips.getClipsForBroadcaster(apiUser.id, {
+        limit: 5,
+      });
+
+      const randomIndex = Math.floor(Math.random() * clips.data.length);
+      const selectedClip = clips.data[randomIndex];
+      console.log(selectedClip);
+
+      chatClient.say(
+        channel,
+        `Vayan a chequear a @${apiUser.displayName} que estuvo stremeando: ${gameName}`,
+      );
+
+      io.emit('trigger-shoutout', {
+        slug: selectedClip.id,
+        streamer: `@${apiUser.displayName}`,
+        avatar: apiUser.profilePictureUrl,
       });
 
       return;
