@@ -19,7 +19,7 @@ const fetchPreviewCommands = async () => {
     const res = await axios.get(`${API_URL}/api/commands`)
     if (res.data) {
       const { data } = res
-      commands.value = data.slice(0, 4) // Mostramos solo los primeros 4
+      commands.value = data
     }
   } catch (err) {
     console.error('Error cargando preview de comandos:', err)
@@ -46,7 +46,7 @@ onMounted(async () => {
 
       <div v-if="loading" class="text-slate-400 font-mono py-4">Cargando...</div>
 
-      <div v-else class="space-y-3 mb-6 text-left">
+      <div v-else class="space-y-3 max-h-100 mb-6 text-left overflow-y-auto custom-scrollbar">
         <div
           v-for="cmd in commands"
           :key="cmd._id"
