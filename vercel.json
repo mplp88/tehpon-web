@@ -1,10 +1,10 @@
 {
   "framework": "vite",
   "outputDirectory": "client/dist",
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index.ts"
+  "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index.ts" }],
+  "functions": {
+    "api/index.ts": {
+      "runtime": "@vercel/node"
     }
-  ]
+  }
 }
