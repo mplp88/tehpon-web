@@ -1,7 +1,9 @@
 import 'dotenv/config';
-import { StaticAuthProvider } from '@twurple/auth';
-import { ChatClient } from '@twurple/chat';
 import mongoose from 'mongoose';
+import { ApiClient } from '@twurple/api';
+import { StaticAuthProvider } from '@twurple/auth';
+import { ChatClient, ChatMessage } from '@twurple/chat';
+import { EventSubWsListener } from '@twurple/eventsub-ws';
 import { Hero, HeroClass } from './models/Hero.js';
 import { ITEM_DATABASE } from './config/items.js';
 import { Combatant, simulateCombat } from './utils/combat.js';
@@ -9,6 +11,7 @@ import { AUTOMATIC_MESSAGES } from './config/timers.js';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { CommandManager } from './services/CommandManager.js';
+import { registerAttendance } from './services/RegisterAttendance.js';
 
 const API_URL = process.env.API_URL || 'http://localhost:3000';
 const commandManager = new CommandManager(API_URL);
@@ -160,32 +163,95 @@ function startAutomaticTimers(chatClient: ChatClient, channel: string): void {
 }
 
 async function main(): Promise<void> {
-  // (Opcional) Refrescar la caché cada 5 minutos por si agregás un comando desde la web
+  // (Opcional) Refrescar la caché cada 10 minutos por si agregás un comando desde la web
   setInterval(
     () => {
       commandManager.loadCommands();
     },
-    5 * 60 * 1000,
+    10 * 60 * 1000,
   );
 
-  const clientId = process.env.CLIENT_ID;
+  const clientId = process.env.TWITCH_CLIENT_ID;
   const accessToken = process.env.TWITCH_ACCESS_TOKEN;
+  const botToken = process.env.TWITCH_ACCESS_TOKEN_BOT;
   const channel = process.env.TWITCH_CHANNEL;
   const botName = process.env.TWITCH_BOT_USERNAME || 'TehPonBot';
   const mongoDbUri = process.env.MONGODB_URI || '';
+  const streamerId = process.env.TWITCH_STREAMER_ID!;
 
-  if (!clientId || !accessToken || !channel) {
+  if (!clientId || !accessToken || !botToken || !channel) {
     throw new Error(
       'Faltan configurar variables esenciales en el archivo .env',
     );
   }
 
-  const authProvider = new StaticAuthProvider(clientId, accessToken);
-
+  // Bot auth for chat
+  const botAuthProvider = new StaticAuthProvider(clientId, botToken);
   const chatClient = new ChatClient({
-    authProvider,
+    authProvider: botAuthProvider,
     channels: [channel],
   });
+
+  // Streamer auth for redemptions
+  const streamerAuthProvider = new StaticAuthProvider(clientId, accessToken);
+  const apiClient = new ApiClient({ authProvider: streamerAuthProvider });
+
+  const listener = new EventSubWsListener({ apiClient });
+
+  listener.onChannelRedemptionAdd(streamerId, async (event) => {
+    const { rewardTitle, userId, userDisplayName, input } = event;
+    console.log(`${userDisplayName} canjeó: ${rewardTitle}`);
+    console.log(`Mensaje: ${input}`);
+
+    const normalizedRewardTitle = rewardTitle.toLowerCase();
+
+    switch (normalizedRewardTitle) {
+      case '[insert coin]':
+        const data = await registerAttendance(userId, userDisplayName);
+
+        if (!data) return;
+
+        const { totalCheckIns, isNewCheckIn } = data;
+        let message = `¡${userDisplayName} se unió a la partida `;
+        message += isNewCheckIn
+          ? `por primera vez! Que disfrutes de gameplay`
+          : `nuevamente! Creditos disponibles: ${totalCheckIns}`;
+
+        chatClient.say(channel, `${userDisplayName} se unió a la partida`);
+
+        const overlayMessage = `¡${userDisplayName} se unió a la partida!`;
+
+        io.emit('trigger-alert', {
+          message: overlayMessage,
+          username: userDisplayName,
+          isTts: false,
+          image: 'arcade-coin.gif',
+          sound: null,
+        });
+        break;
+      default:
+        break;
+    }
+  });
+
+  listener.start();
+
+  const sleep = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
+  async function sendSystemBootSequence(client: ChatClient, channel: string) {
+    const bootSequence = [
+      '> SYSTEM_INIT... [OK]',
+      '> Daemon running on port 8080.',
+      '> Stream process loaded without errors (0 warnings).',
+      '¡Sistemas en línea! ☕ Servidor arriba, café caliente y código listo. Agarrate un café y ponete cómodo, que ya arrancamos.',
+    ];
+
+    for (const line of bootSequence) {
+      client.say(channel, line);
+      await sleep(2000);
+    }
+  }
 
   chatClient.onConnect(() => {
     console.log(`[${botName}] Conectado exitosamente usando TypeScript`);
@@ -202,12 +268,31 @@ async function main(): Promise<void> {
     }
 
     startAutomaticTimers(chatClient, process.env.TWITCH_CHANNEL!);
+    sendSystemBootSequence(chatClient, channel);
   });
 
-  chatClient.onMessage(async (channel, user, text, message) => {
+  chatClient.onMessage(async (channel, user, text, message: ChatMessage) => {
     const args = text.trim().split(' ');
     const command = args[0].toLowerCase();
     const lowercaseUser = user.toLowerCase();
+
+    if (message.isFirst) {
+      chatClient.say(
+        channel,
+        `¡Hola @${user}, bienvenido al canal! Acá vas a encontrar gaming retro/pixel art y algo de desarrollo cada tanto. Contanos: ¿Cómo llegaste al canal? y muy importante: ¿Cómo te gusta tomar el café?`,
+      );
+    }
+
+    if (message.isHighlight) {
+      const cleanText = `${user} dice: ${message.text.substring(0, 200)}`;
+      io.emit('trigger-alert', {
+        message: cleanText,
+        username: user,
+        isTts: false, // <-- Flag clave para que el Front sepa qué hacer
+        image: null, //|| 'tts-default.gif', // Imagen fija o por defecto si querés
+        sound: null, // No mandamos archivo de audio
+      });
+    }
 
     if (!command.startsWith('!')) {
       chatLinesCounter++;
@@ -220,6 +305,12 @@ async function main(): Promise<void> {
         channel,
         'Mirá todos los comandos disponibles en https://tehpon.martinponce.com.ar/commands',
       );
+      return;
+    }
+
+    if (command === '!refrescarcomandos') {
+      commandManager.loadCommands();
+      chatClient.say(channel, 'Se refrescaron los comandos manualmente');
       return;
     }
 

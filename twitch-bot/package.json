@@ -13,8 +13,10 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
+    "@twurple/api": "^8.1.4",
     "@twurple/auth": "^8.1.4",
     "@twurple/chat": "^8.1.4",
+    "@twurple/eventsub-ws": "^8.1.4",
     "axios": "^1.18.1",
     "dotenv": "^17.4.2",
     "mongoose": "^9.7.2",
