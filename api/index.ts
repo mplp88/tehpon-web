@@ -7,6 +7,7 @@ import updatesRoutes from './routes/updates.js';
 import authRoutes from './routes/auth.js';
 import twitchRoutes from './routes/twitch.js';
 import commandsRoutes from './routes/commands.js';
+import userAttendanceRoutes from './routes/user-attendance.js';
 
 dotenv.config();
 
@@ -19,9 +20,6 @@ connectDB();
 app.get('/api/health', (req, res) => {
   res.json({ message: 'API is up' });
 });
-// app.get('/health', (req, res) => {
-//   res.json({ message: 'API is up' });
-// });
 
 //Rutas espejadas para ver si funciona en vercel
 app.use('/api/games', gamesRoutes);
@@ -29,12 +27,7 @@ app.use('/api/updates', updatesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/twitch', twitchRoutes);
 app.use('/api/commands', commandsRoutes);
-
-// app.use('/games', gamesRoutes);
-// app.use('/updates', updatesRoutes);
-// app.use('/auth', authRoutes);
-// app.use('/twitch', twitchRoutes);
-// app.use('/commands', twitchRoutes);
+app.use('/api/user-attendance', userAttendanceRoutes);
 
 // Middleware de manejo de errores
 app.use((err: unknown, _: Request, res: Response, __: NextFunction) => {
