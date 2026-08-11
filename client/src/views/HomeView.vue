@@ -11,7 +11,7 @@ import NowPlaying from '@/components/NowPlaying.vue'
     <!-- Header exacto de la Home original -->
     <header class="flex flex-col items-center justify-center pt-8 pb-10">
       <img
-        src="../assets/logo.png"
+        src="/logo.png"
         alt="TehPon Logo"
         class="w-32 h-32 rounded-full object-contain filter drop-shadow-[0_0_25px_rgba(255,0,127,0.5)] transition-transform duration-500 hover:scale-105"
       />
