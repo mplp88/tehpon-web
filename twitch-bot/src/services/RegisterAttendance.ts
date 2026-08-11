@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.API_URL || 'http://localhost:4000/api';
+const API_URL = process.env.API_URL;
 
 export interface AttendanceResponse {
   totalCheckIns: number;
@@ -13,7 +13,7 @@ export async function registerAttendance(
 ): Promise<AttendanceResponse | null> {
   try {
     const { data } = await axios.post<AttendanceResponse>(
-      `${API_URL}/attendance/register`,
+      `${API_URL}/user-attendance/register`,
       {
         twitchId,
         username,
