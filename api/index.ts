@@ -1,13 +1,13 @@
 import express, { NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { connectDB } from './config/db';
-import gamesRoutes from './routes/games';
-import updatesRoutes from './routes/updates';
-import authRoutes from './routes/auth';
-import twitchRoutes from './routes/twitch';
-import commandsRoutes from './routes/commands';
-import userAttendanceRoutes from './routes/user-attendance';
+import { connectDB } from './config/db.js';
+import gamesRoutes from './routes/games.js';
+import updatesRoutes from './routes/updates.js';
+import authRoutes from './routes/auth.js';
+import twitchRoutes from './routes/twitch.js';
+import commandsRoutes from './routes/commands.js';
+import userAttendanceRoutes from './routes/user-attendance.js';
 
 dotenv.config();
 
