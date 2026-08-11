@@ -69,7 +69,7 @@ const statusBadgeClass = (status: string) => {
   switch (status) {
     case 'jugando':
       return 'bg-purple-500/20 text-purple-400 border border-purple-500/50 animate-pulse'
-    case 'completado':
+    case 'terminado':
       return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
     default:
       return 'bg-amber-500/20 text-amber-400 border border-amber-500/50'
@@ -110,9 +110,12 @@ const getButtonClassName = (game: IGame) => {
 
 onMounted(() => {
   fetchGames()
-  setInterval(() => {
-    fetchGames()
-  }, 5 * 60 * 1000)
+  setInterval(
+    () => {
+      fetchGames()
+    },
+    5 * 60 * 1000,
+  )
 })
 </script>
 
