@@ -15,9 +15,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-connectDB();
+app.use(async (_, res, next) => {
+  await connectDB();
+  next();
+});
 
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_, res) => {
   res.json({ message: 'API is up' });
 });
 
