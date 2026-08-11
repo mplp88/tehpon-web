@@ -205,32 +205,55 @@ async function main(): Promise<void> {
 
     const normalizedRewardTitle = rewardTitle.toLowerCase();
 
-    switch (normalizedRewardTitle) {
-      case '[insert coin]':
-        const data = await registerAttendance(userId, userDisplayName);
+    if (normalizedRewardTitle === '[insert coin]') {
+      const data = await registerAttendance(userId, userDisplayName);
 
-        if (!data) return;
+      if (!data) return;
 
-        const { totalCheckIns, isNewCheckIn } = data;
-        let message = `¡${userDisplayName} se unió a la partida `;
-        message += isNewCheckIn
-          ? `por primera vez! Que disfrutes de gameplay`
-          : `nuevamente! Creditos disponibles: ${totalCheckIns}`;
+      const { totalCheckIns, isNewCheckIn } = data;
+      let message = `¡${userDisplayName} se unió a la partida `;
+      message += isNewCheckIn
+        ? `por primera vez! Que disfrutes de gameplay.`
+        : `nuevamente! Creditos disponibles: ${totalCheckIns}.`;
 
-        chatClient.say(channel, `${userDisplayName} se unió a la partida`);
+      chatClient.say(channel, message);
 
-        const overlayMessage = `¡${userDisplayName} se unió a la partida!`;
+      const overlayMessage = `¡${userDisplayName} se unió a la partida!`;
 
-        io.emit('trigger-alert', {
-          message: overlayMessage,
-          username: userDisplayName,
-          isTts: false,
-          image: 'arcade-coin.gif',
-          sound: null,
-        });
-        break;
-      default:
-        break;
+      io.emit('trigger-alert', {
+        message: overlayMessage,
+        username: userDisplayName,
+        isTts: false,
+        image: 'arcade-coin.gif',
+        sound: 'insert-coin.wav',
+      });
+
+      return;
+    }
+
+    if (normalizedRewardTitle === 'tts') {
+      if (!input) {
+        // Opcional: podrías responderle en el chat de Twitch que falta el texto
+        chatClient.say(
+          channel,
+          `⚠️ @${userDisplayName}, para usar el comando tts tenés que escribir el texto '!tts <texto>' (sin los <> 😅)`,
+        );
+        console.log(`@${userDisplayName} no envió texto para el TTS.`);
+        return;
+      }
+
+      // Sanitizamos o limitamos la longitud para evitar spam/abuso de lectura
+      const cleanText = `${userDisplayName} dice: ${input.substring(0, 200)}`;
+
+      io.emit('trigger-alert', {
+        message: cleanText,
+        username: userDisplayName,
+        isTts: true, // <-- Flag clave para que el Front sepa qué hacer
+        image: null, //|| 'tts-default.gif', // Imagen fija o por defecto si querés
+        sound: null, // No mandamos archivo de audio
+      });
+
+      return;
     }
   });
 
@@ -777,32 +800,6 @@ async function main(): Promise<void> {
         channel,
         `🚨 El mob activo es un ${activeMob.emoji} *${activeMob.name}* [Nv.${activeMob.level}] (HP: ${activeMob.hp}). ¡Escribe !atacar para enfrentarlo! ⚔️`,
       );
-
-      return;
-    }
-
-    if (command === '!tts') {
-      const message = args.slice(1).join(' ');
-      if (!message) {
-        // Opcional: podrías responderle en el chat de Twitch que falta el texto
-        chatClient.say(
-          channel,
-          `⚠️ @${user}, para usar el comando tts tenés que escribir el texto '!tts <texto>' (sin los <> 😅)`,
-        );
-        console.log(`@${user} no envió texto para el TTS.`);
-        return;
-      }
-
-      // Sanitizamos o limitamos la longitud para evitar spam/abuso de lectura
-      const cleanText = `${user} dice: ${message.substring(0, 200)}`;
-
-      io.emit('trigger-alert', {
-        message: cleanText,
-        username: user,
-        isTts: true, // <-- Flag clave para que el Front sepa qué hacer
-        image: null, //|| 'tts-default.gif', // Imagen fija o por defecto si querés
-        sound: null, // No mandamos archivo de audio
-      });
 
       return;
     }
