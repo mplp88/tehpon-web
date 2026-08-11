@@ -6,5 +6,11 @@
     { "src": "client/package.json", "use": "@vercel/static-build" },
     { "src": "api/index.ts", "use": "@vercel/node" }
   ],
-  "rewrites": [{ "source": "/api/(.*)", "destination": "api/index.ts" }]
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "api/index.ts" },
+    {
+      "source": "/((?!assets/|.*\\.(?:css|js|png|jpg|jpeg|gif|svg|ico|webp)).*)",
+      "destination": "/index.html"
+    }
+  ]
 }
