@@ -16,13 +16,13 @@
     "@twurple/api": "^8.1.4",
     "@twurple/auth": "^8.1.4",
     "@twurple/chat": "^8.1.4",
-    "@twurple/eventsub-ws": "^8.1.4",
-    "axios": "^1.18.1",
+    "axios": "^1.19.0",
     "dotenv": "^17.4.2",
     "mongoose": "^9.7.2",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^26.0.1",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3"
