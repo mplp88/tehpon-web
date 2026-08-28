@@ -145,3 +145,5 @@ vite.config.ts.timestamp-*
 scripts/
 uploads/
 .vercel
+
+clips/

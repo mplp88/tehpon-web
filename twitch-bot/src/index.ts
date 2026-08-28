@@ -2,7 +2,7 @@ import 'dotenv/config';
 import mongoose from 'mongoose';
 import { ApiClient } from '@twurple/api';
 import { StaticAuthProvider } from '@twurple/auth';
-import { ChatClient, ChatMessage } from '@twurple/chat';
+import { ChatClient } from '@twurple/chat';
 import { EventSubWsListener } from '@twurple/eventsub-ws';
 import { Hero, HeroClass } from './models/Hero.js';
 import { ITEM_DATABASE } from './config/items.js';
@@ -12,6 +12,13 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { CommandManager } from './services/CommandManager.js';
 import { registerAttendance } from './services/RegisterAttendance.js';
+import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+
+const execFileAsync = promisify(execFile);
 
 const API_URL = process.env.API_URL || 'http://localhost:3000';
 const commandManager = new CommandManager(API_URL);
@@ -74,6 +81,81 @@ const MOB_TEMPLATES = [
     lootPool: ['garras_sombra', 'libro_hechizos', 'tunica_archimago'],
   },
 ];
+
+const LURK_COOLDOWN = 3 * 60 * 1000; // 3 minutos
+
+const lurkResponses = [
+  '👀 ¡Gracias por el lurk, @USER! Si vas a silenciar el stream, mejor muteá la pestaña del navegador y no el reproductor de Twitch 💜',
+  '🫡 ¡Lurk recibido, @USER! Recordatorio: si querés silencio, silenciá la pestaña del navegador en vez del reproductor de Twitch 😉',
+  '👋 ¡Gracias por dejar el lurk, @USER! Y recuerden: para lurkear en silencio, mejor silenciar la pestaña y no el reproductor de Twitch.',
+];
+
+let lastLurkResponseIndex = -1;
+let lastLurkResponseAt = 0;
+
+function normalizeMessage(message: string) {
+  return message
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+function isLurkIntent(message: string) {
+  const text = normalizeMessage(message);
+
+  // Preguntas o conversaciones sobre el concepto de lurk.
+  const excludedPatterns = [
+    /\bque es\b.*\blurk\b/,
+    /\bque significa\b.*\blurk\b/,
+    /\bcomo funciona\b.*\blurk\b/,
+    /\blurkers?\b.*\bcuentan\b/,
+    /\bcuentan\b.*\blurkers?\b/,
+  ];
+
+  if (excludedPatterns.some((pattern) => pattern.test(text))) {
+    return false;
+  }
+
+  // Frases que indican claramente que está dejando un lurk.
+  const lurkPatterns = [
+    /\bte dejo (un )?lurk\b/,
+    /\bles dejo (un )?lurk\b/,
+    /\bdejo (mi )?lurk\b/,
+    /\bme voy\b.*\blurk\b/,
+    /\bme tengo que ir\b.*\blurk\b/,
+    /\bme retiro\b.*\blurk\b/,
+    /\bme desconecto\b.*\blurk\b/,
+    /\bvoy a lurkear\b/,
+    /\bvoy a estar lurkeando\b/,
+    /\bme quedo lurkeando\b/,
+    /\bme quedo de lurk\b/,
+    /\blurk\b/,
+  ];
+
+  return lurkPatterns.some((pattern) => pattern.test(text));
+}
+
+function getLurkResponse(username: string) {
+  const now = Date.now();
+
+  // Cooldown
+  if (now - lastLurkResponseAt < LURK_COOLDOWN) {
+    return null;
+  }
+
+  // Elegir una respuesta distinta a la anterior
+  let index;
+
+  do {
+    index = Math.floor(Math.random() * lurkResponses.length);
+  } while (lurkResponses.length > 1 && index === lastLurkResponseIndex);
+
+  lastLurkResponseIndex = index;
+  lastLurkResponseAt = now;
+
+  return lurkResponses[index].replace('@USER', `@${username}`);
+}
 
 // Variable para almacenar el temporizador del bicho actual
 let mobDespawnTimer: NodeJS.Timeout | null = null;
@@ -143,15 +225,20 @@ async function spawnRandomMob(
   }
 }
 
-const TIMER_INTERVAL = 10 * 60 * 1000;
-//const MIN_CHAT_LINES = 5;
+const TIMER_INTERVAL = Number(process.env.MESSAGES_TIMER_INTERVAL) * 60 * 1000;
+const MIN_CHAT_LINES = Number(process.env.MESSAGES_MIN_CHAT_LINES);
 
 let messageIndex = 0;
 let chatLinesCounter = 0;
 
 function startAutomaticTimers(chatClient: ChatClient, channel: string): void {
   setInterval(() => {
-    // if (chatLinesCounter < MIN_CHAT_LINES) return;
+    if (
+      MIN_CHAT_LINES &&
+      MIN_CHAT_LINES > 0 &&
+      chatLinesCounter < MIN_CHAT_LINES
+    )
+      return;
 
     const message = AUTOMATIC_MESSAGES[messageIndex];
 
@@ -162,7 +249,102 @@ function startAutomaticTimers(chatClient: ChatClient, channel: string): void {
   }, TIMER_INTERVAL);
 }
 
+const clipsDir = path.join('D:', 'Twitch', 'ShoutoutClips');
+
+async function downloadClip(clipUrl: string, filePath: string) {
+  console.log(`Descargando clip mediante yt-dlp...`);
+  console.log(`URL: ${clipUrl}`);
+  console.log(`Destino: ${filePath}`);
+
+  try {
+    const { stdout, stderr } = await execFileAsync(
+      'yt-dlp',
+      [
+        '--no-playlist',
+        '--no-part',
+        '-f',
+        'best[ext=mp4]/best',
+        '-o',
+        filePath,
+        clipUrl,
+      ],
+      {
+        windowsHide: true,
+      },
+    );
+
+    if (stdout) {
+      console.log(stdout);
+    }
+
+    if (stderr) {
+      console.log(stderr);
+    }
+
+    console.log(`yt-dlp terminó correctamente.`);
+  } catch (error: any) {
+    console.error('Error ejecutando yt-dlp:');
+
+    if (error.stdout) {
+      console.error(error.stdout);
+    }
+
+    if (error.stderr) {
+      console.error(error.stderr);
+    }
+
+    throw error;
+  }
+}
+
+async function downloadFile(url: string, targetPath: string) {
+  const writer = fs.createWriteStream(targetPath);
+
+  const response = await axios({
+    url,
+    method: 'GET',
+    responseType: 'stream',
+  });
+
+  response.data.pipe(writer);
+
+  return new Promise<void>((resolve, reject) => {
+    writer.on('finish', resolve);
+    writer.on('error', reject);
+    response.data.on('error', reject);
+  });
+}
+
+const maxAgeMs = Number(process.env.CLIPS_CACHE_DAYS) * 24 * 60 * 60 * 1000;
+
+function cleanOldClips() {
+  if (!fs.existsSync(clipsDir)) {
+    return;
+  }
+
+  const now = Date.now();
+
+  for (const file of fs.readdirSync(clipsDir)) {
+    if (!file.endsWith('.mp4')) {
+      continue;
+    }
+
+    const filePath = path.join(clipsDir, file);
+    const stats = fs.statSync(filePath);
+
+    const age = now - stats.mtimeMs;
+
+    if (age > maxAgeMs) {
+      fs.unlinkSync(filePath);
+
+      console.log(`Clip antiguo eliminado: ${file}`);
+    }
+  }
+}
+
 async function main(): Promise<void> {
+  cleanOldClips();
+
   // (Opcional) Refrescar la caché cada 10 minutos por si agregás un comando desde la web
   setInterval(
     () => {
@@ -174,10 +356,9 @@ async function main(): Promise<void> {
   const clientId = process.env.TWITCH_CLIENT_ID;
   const accessToken = process.env.TWITCH_ACCESS_TOKEN;
   const botToken = process.env.TWITCH_ACCESS_TOKEN_BOT;
-  const channel = process.env.TWITCH_CHANNEL;
+  const channel = process.env.TWITCH_CHANNEL!;
   const botName = process.env.TWITCH_BOT_USERNAME || 'TehPonBot';
   const mongoDbUri = process.env.MONGODB_URI || '';
-  const streamerId = process.env.TWITCH_STREAMER_ID!;
 
   if (!clientId || !accessToken || !botToken || !channel) {
     throw new Error(
@@ -190,13 +371,14 @@ async function main(): Promise<void> {
   const chatClient = new ChatClient({
     authProvider: botAuthProvider,
     channels: [channel],
+    requestMembershipEvents: true,
   });
 
   // Streamer auth for redemptions
   const streamerAuthProvider = new StaticAuthProvider(clientId, accessToken);
-  const apiClient = new ApiClient({ authProvider: streamerAuthProvider });
-
-  const listener = new EventSubWsListener({ apiClient });
+  const userApiClient = new ApiClient({ authProvider: streamerAuthProvider });
+  const listener = new EventSubWsListener({ apiClient: userApiClient });
+  const streamerId = (await userApiClient.getTokenInfo()).userId + '';
 
   listener.onChannelRedemptionAdd(streamerId, async (event) => {
     const { rewardTitle, userId, userDisplayName, input } = event;
@@ -276,38 +458,97 @@ async function main(): Promise<void> {
     }
   }
 
+  const CHATTERS_REFRESH_INTERVAL = 3 * 60 * 1000;
+  const chatters = new Set<string>();
+
+  async function refreshChatters() {
+    try {
+      const newChatters = new Set<string>();
+
+      const { userId } = await userApiClient.getTokenInfo();
+      if (!userId) {
+        console.log('No se pudo obtener el userId del token');
+        return;
+      }
+      const paginator = userApiClient.chat.getChattersPaginated(userId);
+
+      for await (const chatter of paginator) {
+        newChatters.add(chatter.userDisplayName);
+      }
+
+      chatters.clear();
+
+      for (const chatter of newChatters) {
+        chatters.add(chatter);
+      }
+
+      console.log(`[CHATTERS] Cache actualizado: ${chatters.size} usuarios`);
+    } catch (error) {
+      console.error('[CHATTERS] Error actualizando:', error);
+    }
+  }
+
+  function getRandomChatter(excludeUser: string) {
+    const excluded = new Set([excludeUser, botName]);
+
+    const users = [...chatters].filter((username) => !excluded.has(username));
+
+    if (users.length === 0) {
+      return null;
+    }
+
+    return users[Math.floor(Math.random() * users.length)];
+  }
+
+  chatClient.onJoin((_, user) => {
+    console.log(`[CHATTERS] ${user} JOINED (${chatters.size})`);
+  });
+
+  chatClient.onPart((_, user) => {
+    console.log(`[CHATTERS] ${user} PARTED (${chatters.size})`);
+  });
+
   chatClient.onConnect(() => {
     console.log(`[${botName}] Conectado exitosamente usando TypeScript`);
+
+    setInterval(() => {
+      refreshChatters();
+    }, CHATTERS_REFRESH_INTERVAL);
 
     const enableAdventure = process.env.RPG_ADVENTURE_ENABLE === 'true';
     if (enableAdventure) {
       const adventureTimer = parseInt(process.env.RPG_ADVENTURE_TIMER!);
       setInterval(
         () => {
-          spawnRandomMob(chatClient, process.env.TWITCH_CHANNEL!);
+          spawnRandomMob(chatClient, channel);
         },
         adventureTimer * 60 * 1000,
       );
     }
 
-    startAutomaticTimers(chatClient, process.env.TWITCH_CHANNEL!);
+    startAutomaticTimers(chatClient, channel);
     sendSystemBootSequence(chatClient, channel);
   });
 
-  chatClient.onMessage(async (channel, user, text, message: ChatMessage) => {
+  chatClient.onMessage(async (channel, user, text, message) => {
     const args = text.trim().split(' ');
     const command = args[0].toLowerCase();
     const lowercaseUser = user.toLowerCase();
+    const { displayName } = message.userInfo;
+
+    if (!chatters.has(displayName)) {
+      chatters.add(displayName);
+    }
 
     if (message.isFirst) {
       chatClient.say(
         channel,
-        `¡Hola @${user}, bienvenido al canal! Acá vas a encontrar gaming retro/pixel art y algo de desarrollo cada tanto. Contanos: ¿Cómo llegaste al canal? y muy importante: ¿Cómo te gusta tomar el café?`,
+        `¡Hola @${displayName}, bienvenido al canal! Acá vas a encontrar gaming retro/pixel art y algo de desarrollo cada tanto. Contanos: ¿Cómo llegaste al canal? y muy importante: ¿Cómo te gusta tomar el café?`,
       );
     }
 
     if (message.isHighlight) {
-      const cleanText = `${user} dice: ${message.text.substring(0, 200)}`;
+      const cleanText = `${displayName} dice: ${text.substring(0, 200)}`;
       io.emit('trigger-alert', {
         message: cleanText,
         username: user,
@@ -315,6 +556,14 @@ async function main(): Promise<void> {
         image: null, //|| 'tts-default.gif', // Imagen fija o por defecto si querés
         sound: null, // No mandamos archivo de audio
       });
+    }
+
+    if (isLurkIntent(text)) {
+      const response = getLurkResponse(lowercaseUser);
+
+      if (response) {
+        chatClient.say(channel, response);
+      }
     }
 
     if (!command.startsWith('!')) {
@@ -347,7 +596,7 @@ async function main(): Promise<void> {
 
           chatClient.say(
             channel,
-            `⚔️ ¡@${user} bienvenido al reino! Tu perfil ha sido creado. Para empezar tu viaje, elige una clase escribiendo: !clase [Guerrero / Mago / Pícaro]`,
+            `⚔️ ¡@${displayName} bienvenido al reino! Tu perfil ha sido creado. Para empezar tu viaje, elige una clase escribiendo: !clase [Guerrero / Mago / Pícaro]`,
           );
           return;
         }
@@ -355,7 +604,7 @@ async function main(): Promise<void> {
         if (hero.class === 'Campesino') {
           chatClient.say(
             channel,
-            `⚠️ @${user}, aún no elegiste tu clase. Escribe !clase [Guerrero / Mago / Picaro] para empezar.`,
+            `⚠️ @${displayName}, aún no elegiste tu clase. Escribe !clase [Guerrero / Mago / Picaro] para empezar.`,
           );
 
           return;
@@ -365,7 +614,7 @@ async function main(): Promise<void> {
         const armor = ITEM_DATABASE[hero.inventory.armor];
         chatClient.say(
           channel,
-          `🎒 Héroe @${user} [${hero.class} Nv.${hero.level}] 🌟 EXP: ${hero.exp} | 🪙 Oro: ${hero.gold} | ⚔️ Arma: ${weapon.name} | 🛡️ Armadura: ${armor.name}`,
+          `🎒 Héroe @${displayName} [${hero.class} Nv.${hero.level}] 🌟 EXP: ${hero.exp} | 🪙 Oro: ${hero.gold} | ⚔️ Arma: ${weapon.name} | 🛡️ Armadura: ${armor.name}`,
         );
       } catch (error) {
         console.error(error);
@@ -383,7 +632,7 @@ async function main(): Promise<void> {
         if (!hero) {
           chatClient.say(
             channel,
-            `❌ @${user}, no tenés un heroe creado en este reino. Usá !aventura para iniciar.`,
+            `❌ @${displayName}, no tenés un heroe creado en este reino. Usá !aventura para iniciar.`,
           );
           return;
         }
@@ -391,7 +640,7 @@ async function main(): Promise<void> {
         if (hero.class === 'Campesino') {
           chatClient.say(
             channel,
-            `⚠️ @${user}, aún no elegiste tu clase. Escribe !clase [Guerrero / Mago / Picaro] para empezar.`,
+            `⚠️ @${displayName}, aún no elegiste tu clase. Escribe !clase [Guerrero / Mago / Picaro] para empezar.`,
           );
 
           return;
@@ -401,7 +650,7 @@ async function main(): Promise<void> {
 
         chatClient.say(
           channel,
-          `🎒 Héroe @${user} [${hero.class} Nv.${hero.level}] tus stats son: 🌟 Fuerza: ${stats.fuerza} | 🌟 Vitalidad: ${stats.vitalidad} | 🌟 Destreza: ${stats.destreza} | 🌟 inteligencia: ${stats.inteligencia} | 🌟 Defensa: ${stats.defense} | 🌟 Defensa Especial: ${stats.spDefense} | 🌟 HP: ${stats.maxHp}`,
+          `🎒 Héroe @${displayName} [${hero.class} Nv.${hero.level}] tus stats son: 🌟 Fuerza: ${stats.fuerza} | 🌟 Vitalidad: ${stats.vitalidad} | 🌟 Destreza: ${stats.destreza} | 🌟 inteligencia: ${stats.inteligencia} | 🌟 Defensa: ${stats.defense} | 🌟 Defensa Especial: ${stats.spDefense} | 🌟 HP: ${stats.maxHp}`,
         );
       } catch (err) {
         console.error(err);
@@ -416,7 +665,7 @@ async function main(): Promise<void> {
         if (!hero) {
           chatClient.say(
             channel,
-            `❌ @${user}, no tenés un heroe creado en este reino. Usá !aventura para iniciar.`,
+            `❌ @${displayName}, no tenés un heroe creado en este reino. Usá !aventura para iniciar.`,
           );
           return;
         }
@@ -424,7 +673,7 @@ async function main(): Promise<void> {
         if (hero.class === 'Campesino') {
           chatClient.say(
             channel,
-            `⚠️ @${user}, aún no elegiste tu clase. Escribe !clase [Guerrero / Mago / Picaro] para empezar.`,
+            `⚠️ @${displayName}, aún no elegiste tu clase. Escribe !clase [Guerrero / Mago / Picaro] para empezar.`,
           );
 
           return;
@@ -432,7 +681,7 @@ async function main(): Promise<void> {
 
         chatClient.say(
           channel,
-          `🎒 Héroe @${user} [${hero.class} Nv.${hero.level}] tu 🪙 Oro total es:  ${hero.gold}`,
+          `🎒 Héroe @${displayName} [${hero.class} Nv.${hero.level}] tu 🪙 Oro total es:  ${hero.gold}`,
         );
       } catch (err) {
         console.error(err);
@@ -460,7 +709,7 @@ async function main(): Promise<void> {
       ) {
         chatClient.say(
           channel,
-          `❌ @${user}, debes especificar una clase válida: !clase Guerrero, !clase Mago o !clase Pícaro.`,
+          `❌ @${displayName}, debes especificar una clase válida: !clase Guerrero, !clase Mago o !clase Pícaro.`,
         );
         return;
       }
@@ -471,7 +720,7 @@ async function main(): Promise<void> {
         if (!hero) {
           chatClient.say(
             channel,
-            `❌ @${user}, no tenés un heroe creado en este reino. Usá !aventura para iniciar.`,
+            `❌ @${displayName}, no tenés un heroe creado en este reino. Usá !aventura para iniciar.`,
           );
           return;
         }
@@ -506,12 +755,12 @@ async function main(): Promise<void> {
         if (isResetting) {
           chatClient.say(
             channel,
-            `🔄 ¡Cambio de destino! @${user} ha reiniciado su progreso y ahora es un *${selectedClass}* de Nivel 1. ¡Tu inventario fue restaurado! 🎒`,
+            `🔄 ¡Cambio de destino! @${displayName} ha reiniciado su progreso y ahora es un *${selectedClass}* de Nivel 1. ¡Tu inventario fue restaurado! 🎒`,
           );
         } else {
           chatClient.say(
             channel,
-            `✨ ¡Excelente elección @${user}! Te has convertido en *${selectedClass}*. Tu aventura comienza oficialmente AHORA. Escribe !aventura para ver tu estado.`,
+            `✨ ¡Excelente elección @${displayName}! Te has convertido en *${selectedClass}*. Tu aventura comienza oficialmente AHORA. Escribe !aventura para ver tu estado.`,
           );
         }
       } catch (error) {
@@ -531,7 +780,7 @@ async function main(): Promise<void> {
       if (!targetUser) {
         chatClient.say(
           channel,
-          `❌ @${user}, debes especificar a quién desafiar. Ej: !duelo user123`,
+          `❌ @${displayName}, debes especificar a quién desafiar. Ej: !duelo user123`,
         );
         return;
       }
@@ -539,7 +788,7 @@ async function main(): Promise<void> {
       if (targetUser === lowercaseUser) {
         chatClient.say(
           channel,
-          `🤣 @${user}, no podés batirte a duelo con vos mismo.`,
+          `🤣 @${displayName}, no podés batirte a duelo con vos mismo.`,
         );
         return;
       }
@@ -551,7 +800,7 @@ async function main(): Promise<void> {
         if (!challengerHero || challengerHero.class === 'Campesino') {
           chatClient.say(
             channel,
-            `❌ @${user}, necesitás iniciar tu aventura primero con !aventura.`,
+            `❌ @${displayName}, necesitás iniciar tu aventura primero con !aventura.`,
           );
           return;
         }
@@ -581,7 +830,7 @@ async function main(): Promise<void> {
 
         chatClient.say(
           channel,
-          `⚔️ @${user} [Nv.${challengerHero.level}] ha desafiado a un duelo a @${targetUser} [Nv.${targetHero.level}]. Escribe !aceptar en los próximos 60s para pelear.`,
+          `⚔️ @${displayName} [Nv.${challengerHero.level}] ha desafiado a un duelo a @${targetUser} [Nv.${targetHero.level}]. Escribe !aceptar en los próximos 60s para pelear.`,
         );
       } catch (err) {
         console.error(err);
@@ -596,7 +845,7 @@ async function main(): Promise<void> {
       if (!pendingDuel) {
         chatClient.say(
           channel,
-          `❌ @${user}, no tenés ningún desafío de duelo pendiente.`,
+          `❌ @${displayName}, no tenés ningún desafío de duelo pendiente.`,
         );
         return;
       }
@@ -607,7 +856,7 @@ async function main(): Promise<void> {
         activeDuels.delete(lowercaseUser);
         chatClient.say(
           channel,
-          `⏱️ El duelo pendiente para @${user} ha expirado.`,
+          `⏱️ El duelo pendiente para @${displayName} ha expirado.`,
         );
         return;
       }
@@ -683,7 +932,7 @@ async function main(): Promise<void> {
       if (!activeMob) {
         chatClient.say(
           channel,
-          `🛡️ @${user}, la zona está tranquila. No hay monstruos acechando en este momento.`,
+          `🛡️ @${displayName}, la zona está tranquila. No hay monstruos acechando en este momento.`,
         );
         return;
       }
@@ -693,7 +942,7 @@ async function main(): Promise<void> {
         if (!hero) {
           chatClient.say(
             channel,
-            `❌ @${user}, necesitás iniciar tu aventura con !aventura para poder combatir.`,
+            `❌ @${displayName}, necesitás iniciar tu aventura con !aventura para poder combatir.`,
           );
           return;
         }
@@ -727,7 +976,7 @@ async function main(): Promise<void> {
         const playerWon = resultado.winnerName === hero.username;
 
         if (playerWon) {
-          let recompensaMsg = `⚔️ @${user} ha derrotado a ${activeMob.emoji} *${activeMob.name}*! Ganó 🪙 ${activeMob.goldReward} de oro y 🌟 ${activeMob.expReward} de EXP.`;
+          let recompensaMsg = `⚔️ @${displayName} ha derrotado a ${activeMob.emoji} *${activeMob.name}*! Ganó 🪙 ${activeMob.goldReward} de oro y 🌟 ${activeMob.expReward} de EXP.`;
 
           hero.gold += activeMob.goldReward;
           hero.exp += activeMob.expReward;
@@ -777,7 +1026,7 @@ async function main(): Promise<void> {
 
           chatClient.say(
             channel,
-            `💀 @${user} fue derrotado brutalmente por el ${activeMob.name}. El monstruo sigue libre y perdiste 🪙 ${oroPerdido} de oro por la paliza.`,
+            `💀 @${displayName} fue derrotado brutalmente por el ${activeMob.name}. El monstruo sigue libre y perdiste 🪙 ${oroPerdido} de oro por la paliza.`,
           );
         }
       } catch (err) {
@@ -791,7 +1040,7 @@ async function main(): Promise<void> {
       if (!activeMob) {
         chatClient.say(
           channel,
-          `🛡️ @${user}, la zona está tranquila. No hay monstruos acechando en este momento.`,
+          `🛡️ @${displayName}, la zona está tranquila. No hay monstruos acechando en este momento.`,
         );
         return;
       }
@@ -804,6 +1053,179 @@ async function main(): Promise<void> {
       return;
     }
 
+    if (command === '!promo') {
+      const name = args[1]?.toLowerCase().replace('@', '');
+
+      if (!name) {
+        // Opcional: podrías responderle en el chat de Twitch que falta el texto
+        chatClient.say(
+          channel,
+          `⚠️ @${displayName}, para usar el comando so tenés que escribir el nombre del streamer '!promo <streamer>'`,
+        );
+        console.log(
+          `@${displayName} no envió el nombre del streamer para el SO.`,
+        );
+        return;
+      }
+
+      const apiUser = await userApiClient.users.getUserByName(name);
+      if (apiUser == null) {
+        chatClient.say(channel, `No pude encontrar al streamer '@${name}'`);
+        return;
+      }
+
+      const channelInfo = await userApiClient.channels.getChannelInfoById(
+        apiUser.id,
+      );
+
+      const gameName = channelInfo?.gameName;
+      let message = `¡Vayan a chequear a @${apiUser.displayName} en https://twitch.tv/${name}`;
+      message += gameName ? ` que estuvo stremeando: ${gameName}!` : '!';
+
+      chatClient.say(channel, message);
+      return;
+    }
+
+    if (
+      command === '!so' &&
+      (message.userInfo.isBroadcaster || message.userInfo.isMod)
+    ) {
+      const name = args[1]?.toLowerCase().replace('@', '');
+
+      if (!name) {
+        // Opcional: podrías responderle en el chat de Twitch que falta el texto
+        chatClient.say(
+          channel,
+          `⚠️ @${displayName}, para usar el comando so tenés que escribir el nombre del streamer '!so <streamer>'`,
+        );
+        console.log(
+          `@${displayName} no envió el nombre del streamer para el SO.`,
+        );
+        return;
+      }
+
+      const apiUser = await userApiClient.users.getUserByName(name);
+      if (apiUser == null) {
+        chatClient.say(channel, `No pude encontrar al streamer '@${name}'`);
+        return;
+      }
+
+      const { displayName: soDisplayName, profilePictureUrl } = apiUser;
+
+      const channelInfo = await userApiClient.channels.getChannelInfoById(
+        apiUser.id,
+      );
+
+      const gameName = channelInfo?.gameName;
+      let chatMessage = `¡Vayan a chequear a @${soDisplayName} en https://twitch.tv/${name}`;
+      chatMessage += gameName ? ` que estuvo stremeando: ${gameName}!` : '!';
+
+      chatClient.say(channel, chatMessage);
+
+      const clips = await userApiClient.clips.getClipsForBroadcaster(
+        apiUser.id,
+        {
+          limit: 5,
+        },
+      );
+
+      const randomIndex = Math.floor(Math.random() * clips.data.length);
+      const selectedClip = clips.data[randomIndex];
+      console.log('Selected Clip:', selectedClip?.id);
+
+      if (!selectedClip) return;
+
+      if (!fs.existsSync(clipsDir)) {
+        fs.mkdirSync(clipsDir, { recursive: true });
+      }
+
+      const fileName = `${selectedClip.id}.mp4`;
+      const filePath = path.join(clipsDir, fileName);
+
+      if (!fs.existsSync(filePath)) {
+        console.log(`Clip no encontrado en cache. Descargando...`);
+
+        await downloadClip(selectedClip.url, filePath);
+
+        const stats = fs.statSync(filePath);
+
+        if (stats.size < 100 * 1024) {
+          fs.unlinkSync(filePath);
+
+          console.error(
+            `El clip descargado parece inválido: ${stats.size} bytes`,
+          );
+
+          return;
+        }
+
+        console.log(
+          `Clip descargado correctamente: ${filePath} ` +
+            `(${(stats.size / 1024 / 1024).toFixed(2)} MB)`,
+        );
+      }
+
+      if (fs.existsSync(filePath)) {
+        await axios.post('http://localhost:5050/api/obs/media/play', {
+          fileName,
+        });
+      }
+
+      io.emit('trigger-shoutout', {
+        streamer: `@${displayName}`,
+        avatar: profilePictureUrl,
+      });
+
+      return;
+    }
+
+    if (command === '!cebar' || command === '!matear') {
+      let otherUser: string | null = args[1]?.replace('@', '');
+
+      if (!otherUser) {
+        otherUser = getRandomChatter(displayName);
+      }
+
+      if (!otherUser) {
+        chatClient.say(
+          channel,
+          `@${displayName} está tomando mate solo porque no hay nadie más en el chat 🧉`,
+        );
+
+        return;
+      }
+
+      chatClient.say(
+        channel,
+        `@${displayName} le cebó un mate a @${otherUser}`,
+      );
+
+      return;
+    }
+
+    if (command === '!cafe' || command === '!cafetear') {
+      let otherUser: string | null = args[1]?.replace('@', '');
+
+      if (!otherUser) {
+        otherUser = getRandomChatter(displayName);
+      }
+
+      if (!otherUser) {
+        chatClient.say(
+          channel,
+          `@${displayName} está tomando café solo porque no hay nadie más en el chat ☕`,
+        );
+
+        return;
+      }
+
+      chatClient.say(
+        channel,
+        `@${displayName} le invitó un café a @${otherUser}`,
+      );
+      return;
+    }
+
     const cmd = commandManager.getCommand(command);
 
     if (cmd) {
@@ -812,14 +1234,14 @@ async function main(): Promise<void> {
       if (secondsLeft > 0) {
         chatClient.say(
           channel,
-          `⏳ @${user}, el comando "${command}" está en enfriamiento. Faltan ${secondsLeft}s.`,
+          `⏳ @${displayName}, el comando "${command}" está en enfriamiento. Faltan ${secondsLeft}s.`,
         );
         return;
       }
 
-      // Formatear el mensaje si existe (remplaza {user} por el nombre del viewer)
+      // Formatear el mensaje si existe (remplaza {displayName} por el nombre del viewer)
       const formattedMessage = cmd.chatResponse
-        ? commandManager.formatMessage(cmd.chatResponse, user)
+        ? commandManager.formatMessage(cmd.chatResponse, displayName)
         : null;
 
       // 2. Disparar evento a OBS/Overlay mediante WebSockets si tiene media asociado
@@ -827,7 +1249,7 @@ async function main(): Promise<void> {
         io.emit('trigger-alert', {
           sound: cmd.media.soundFile,
           image: cmd.media.imageFile,
-          message: formattedMessage || `¡@${user} usó ${cmd.name}!`,
+          message: formattedMessage || `¡@${displayName} usó ${cmd.name}!`,
         });
       }
 
@@ -851,7 +1273,7 @@ async function main(): Promise<void> {
       console.error('Error al conectar a MongoDB:', err);
     });
 
-  await chatClient.connect();
+  chatClient.connect();
 }
 
 main().catch(console.error);
@@ -859,4 +1281,10 @@ main().catch(console.error);
 const PORT = 5051;
 httpServer.listen(PORT, () => {
   console.log(`Servidor de sockets corriendo en: http://localhost:${PORT}`);
+});
+
+process.on('SIGINT', () => {
+  console.log('Cerrando bot...');
+  cleanOldClips();
+  process.exit(0);
 });
