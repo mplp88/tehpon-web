@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { Command } from '../models/Command.js';
+import Command from '../models/Command.js';
 import { requireStreamerAdmin } from '../middlewares/auth.js';
 
 const router = Router();
