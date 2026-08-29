@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.js';
 import twitchRoutes from './routes/twitch.js';
 import commandsRoutes from './routes/commands.js';
 import userAttendanceRoutes from './routes/user-attendance.js';
+import deathCounterRoutes from './routes/death-counter.js';
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/twitch', twitchRoutes);
 app.use('/api/commands', commandsRoutes);
 app.use('/api/user-attendance', userAttendanceRoutes);
+app.use('/api/death-counter', deathCounterRoutes);
 
 // Middleware de manejo de errores
 app.use((err: unknown, _: Request, res: Response, __: NextFunction) => {

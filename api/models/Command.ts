@@ -36,4 +36,4 @@ const CommandSchema = new Schema<ICommand>({
   cooldown: { type: Number, default: 0 },
 });
 
-export const Command = model<ICommand>('Command', CommandSchema);
+export default model<ICommand>('Command', CommandSchema);
