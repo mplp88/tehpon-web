@@ -21,8 +21,6 @@ const execFileAsync = promisify(execFile);
 const API_URL = process.env.API_URL || 'http://localhost:3000';
 const commandManager = new CommandManager(API_URL);
 
-// const httpServer = createServer();
-
 interface IDuelChallenge {
   challenger: string;
   target: string;
