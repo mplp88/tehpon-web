@@ -8,8 +8,6 @@ import { Hero, HeroClass } from './models/Hero.js';
 import { ITEM_DATABASE } from './config/items.js';
 import { Combatant, simulateCombat } from './utils/combat.js';
 import { AUTOMATIC_MESSAGES } from './config/timers.js';
-import { createServer } from 'http';
-import { Server } from 'socket.io';
 import { CommandManager } from './services/CommandManager.js';
 import { registerAttendance } from './services/RegisterAttendance.js';
 import axios from 'axios';
@@ -22,27 +20,6 @@ const execFileAsync = promisify(execFile);
 
 const API_URL = process.env.API_URL || 'http://localhost:3000';
 const commandManager = new CommandManager(API_URL);
-
-const httpServer = createServer();
-const io = new Server(httpServer, {
-  cors: {
-    origin: [
-      'http://localhost:5050',
-      'http://127.0.0.1:5050',
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-    ],
-    methods: ['GET', 'POST'],
-  },
-});
-
-io.on('connection', (socket) => {
-  console.log(`[Socket.io] Cliente conectado: ${socket.id}`);
-
-  socket.on('disconnect', () => {
-    console.log(`[Socket.io] Cliente desconectado: ${socket.id}`);
-  });
-});
 
 interface IDuelChallenge {
   challenger: string;
@@ -402,7 +379,7 @@ async function main(): Promise<void> {
 
       const overlayMessage = `¡${userDisplayName} se unió a la partida!`;
 
-      io.emit('trigger-alert', {
+      axios.post('http://localhost:5050/api/overlay/alert', {
         message: overlayMessage,
         username: userDisplayName,
         isTts: false,
@@ -427,7 +404,7 @@ async function main(): Promise<void> {
       // Sanitizamos o limitamos la longitud para evitar spam/abuso de lectura
       const cleanText = `${userDisplayName} dice: ${input.substring(0, 200)}`;
 
-      io.emit('trigger-alert', {
+      axios.post('http://localhost:5050/api/overlay/alert', {
         message: cleanText,
         username: userDisplayName,
         isTts: true, // <-- Flag clave para que el Front sepa qué hacer
@@ -549,7 +526,7 @@ async function main(): Promise<void> {
 
     if (message.isHighlight) {
       const cleanText = `${displayName} dice: ${text.substring(0, 200)}`;
-      io.emit('trigger-alert', {
+      axios.post('http://localhost:5050/api/overlay/alert', {
         message: cleanText,
         username: user,
         isTts: false, // <-- Flag clave para que el Front sepa qué hacer
@@ -1166,12 +1143,12 @@ async function main(): Promise<void> {
       }
 
       if (fs.existsSync(filePath)) {
-        await axios.post('http://localhost:5050/api/obs/media/play', {
+        axios.post('http://localhost:5050/api/obs/media/play', {
           fileName,
         });
       }
 
-      io.emit('trigger-shoutout', {
+      axios.post('http://localhost:5050/api/overlay/shoutout', {
         streamer: `@${displayName}`,
         avatar: profilePictureUrl,
       });
@@ -1246,7 +1223,7 @@ async function main(): Promise<void> {
 
       // 2. Disparar evento a OBS/Overlay mediante WebSockets si tiene media asociado
       if (cmd.media?.soundFile || cmd.media?.imageFile) {
-        io.emit('trigger-alert', {
+        axios.post('http://localhost:5050/api/overlay/alert', {
           sound: cmd.media.soundFile,
           image: cmd.media.imageFile,
           message: formattedMessage || `¡@${displayName} usó ${cmd.name}!`,
@@ -1277,11 +1254,6 @@ async function main(): Promise<void> {
 }
 
 main().catch(console.error);
-
-const PORT = 5051;
-httpServer.listen(PORT, () => {
-  console.log(`Servidor de sockets corriendo en: http://localhost:${PORT}`);
-});
 
 process.on('SIGINT', () => {
   console.log('Cerrando bot...');
