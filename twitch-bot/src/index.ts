@@ -15,6 +15,12 @@ import fs from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import {
+  addDeaths,
+  DeathCounterResponse,
+  getDeaths,
+  resetDeaths,
+} from './services/DeathCounterService.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -503,8 +509,8 @@ async function main(): Promise<void> {
       );
     }
 
-    startAutomaticTimers(chatClient, channel);
-    sendSystemBootSequence(chatClient, channel);
+    // startAutomaticTimers(chatClient, channel);
+    // sendSystemBootSequence(chatClient, channel);
   });
 
   chatClient.onMessage(async (channel, user, text, message) => {
@@ -1203,10 +1209,35 @@ async function main(): Promise<void> {
       return;
     }
 
+    if (command === '!muertes') {
+      const arg = args[1];
+      const amount = args[2] != null ? Number(args[2]) : 1;
+
+      let deathCounterResponse: DeathCounterResponse | null;
+
+      if (arg === 'reset' || arg === 'reiniciar') {
+        await resetDeaths();
+        return;
+      } else if (arg === 'add' || arg === 'agregar') {
+        deathCounterResponse = await addDeaths(amount ?? 1);
+      } else {
+        deathCounterResponse = await getDeaths();
+      }
+
+      if (!deathCounterResponse) {
+        return;
+      }
+
+      chatClient.say(
+        channel,
+        `💀 TehPon se murio ${deathCounterResponse.sessionDeaths} veces esta sesión. (${deathCounterResponse.totalDeaths} en total)`,
+      );
+      return;
+    }
+
     const cmd = commandManager.getCommand(command);
 
     if (cmd) {
-      // 1. Verificar Cooldown
       const secondsLeft = commandManager.checkCooldown(command);
       if (secondsLeft > 0) {
         chatClient.say(
@@ -1216,12 +1247,10 @@ async function main(): Promise<void> {
         return;
       }
 
-      // Formatear el mensaje si existe (remplaza {displayName} por el nombre del viewer)
       const formattedMessage = cmd.chatResponse
         ? commandManager.formatMessage(cmd.chatResponse, displayName)
         : null;
 
-      // 2. Disparar evento a OBS/Overlay mediante WebSockets si tiene media asociado
       if (cmd.media?.soundFile || cmd.media?.imageFile) {
         axios.post('http://localhost:5050/api/overlay/alert', {
           sound: cmd.media.soundFile,
@@ -1230,12 +1259,10 @@ async function main(): Promise<void> {
         });
       }
 
-      // 3. Responder en el chat de Twitch
       if (formattedMessage) {
         chatClient.say(channel, formattedMessage);
       }
 
-      // 4. Marcar timestamp para el cooldown
       commandManager.registerUsage(command);
     }
   });
