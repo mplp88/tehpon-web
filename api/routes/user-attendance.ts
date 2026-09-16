@@ -41,11 +41,6 @@ router.post('/register', async (req: Request, res: Response) => {
       userRecord.lastCheckIn = new Date();
       userRecord.username = username; // Mantiene actualizado el username en caso de renombre
       await userRecord.save();
-
-      return res.status(200).json({
-        totalCheckIns: userRecord.totalCheckIns,
-        isNewCheckIn: true,
-      });
     }
 
     // Ya hizo check-in en el día actual

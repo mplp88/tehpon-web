@@ -101,19 +101,20 @@ function isLurkIntent(message: string) {
   }
 
   // Frases que indican claramente que está dejando un lurk.
+  const lurkWord = /lurk(?:cito|e[ií]to|ear|eando|ito|cito)?/i;
+
   const lurkPatterns = [
-    /\bte dejo (un )?lurk\b/,
-    /\bles dejo (un )?lurk\b/,
-    /\bdejo (mi )?lurk\b/,
-    /\bme voy\b.*\blurk\b/,
-    /\bme tengo que ir\b.*\blurk\b/,
-    /\bme retiro\b.*\blurk\b/,
-    /\bme desconecto\b.*\blurk\b/,
-    /\bvoy a lurkear\b/,
-    /\bvoy a estar lurkeando\b/,
-    /\bme quedo lurkeando\b/,
-    /\bme quedo de lurk\b/,
-    /\blurk\b/,
+    new RegExp(`\\bte dejo (un )?${lurkWord.source}\\b`, 'i'),
+    new RegExp(`\\bles dejo (un )?${lurkWord.source}\\b`, 'i'),
+    new RegExp(`\\bdejo (mi )?${lurkWord.source}\\b`, 'i'),
+    new RegExp(`\\bme voy\\b.*\\b${lurkWord.source}\\b`, 'i'),
+    new RegExp(`\\bme tengo que ir\\b.*\\b${lurkWord.source}\\b`, 'i'),
+    new RegExp(`\\bme retiro\\b.*\\b${lurkWord.source}\\b`, 'i'),
+    new RegExp(`\\bme desconecto\\b.*\\b${lurkWord.source}\\b`, 'i'),
+    new RegExp(`\\bvoy a ${lurkWord.source}\\b`, 'i'),
+    new RegExp(`\\bvoy a estar ${lurkWord.source}\\b`, 'i'),
+    new RegExp(`\\bme quedo ${lurkWord.source}\\b`, 'i'),
+    new RegExp(`\\b${lurkWord.source}\\b`, 'i'),
   ];
 
   return lurkPatterns.some((pattern) => pattern.test(text));
@@ -509,8 +510,8 @@ async function main(): Promise<void> {
       );
     }
 
-    // startAutomaticTimers(chatClient, channel);
-    // sendSystemBootSequence(chatClient, channel);
+    startAutomaticTimers(chatClient, channel);
+    sendSystemBootSequence(chatClient, channel);
   });
 
   chatClient.onMessage(async (channel, user, text, message) => {
@@ -1155,7 +1156,7 @@ async function main(): Promise<void> {
       }
 
       axios.post('http://localhost:5050/api/overlay/shoutout', {
-        streamer: `@${displayName}`,
+        streamer: `@${soDisplayName}`,
         avatar: profilePictureUrl,
       });
 
@@ -1213,11 +1214,10 @@ async function main(): Promise<void> {
       const arg = args[1];
       const amount = args[2] != null ? Number(args[2]) : 1;
 
-      let deathCounterResponse: DeathCounterResponse | null;
+      let deathCounterResponse: DeathCounterResponse | null = null;
 
       if (arg === 'reset' || arg === 'reiniciar') {
         await resetDeaths();
-        return;
       } else if (arg === 'add' || arg === 'agregar') {
         deathCounterResponse = await addDeaths(amount ?? 1);
       } else {
@@ -1227,6 +1227,10 @@ async function main(): Promise<void> {
       if (!deathCounterResponse) {
         return;
       }
+
+      axios.put('http://localhost:5050/api/overlay/death-counter', {
+        amount: deathCounterResponse.totalDeaths,
+      });
 
       chatClient.say(
         channel,

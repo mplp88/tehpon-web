@@ -21,7 +21,7 @@ const socialLinks = [
   },
   {
     name: 'Discord',
-    url: 'https://discord.com/invite/KGbT45t6Ca',
+    url: 'https://discord.gg/JwPaSmJE6',
     icon: 'fab fa-discord',
     color: '#5865f2',
   },
