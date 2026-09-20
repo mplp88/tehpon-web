@@ -594,8 +594,8 @@ async function main(): Promise<void> {
           return;
         }
 
-        const weapon = ITEM_DATABASE[hero.inventory.weapon];
-        const armor = ITEM_DATABASE[hero.inventory.armor];
+        const weapon = ITEM_DATABASE[hero.equipment.weapon];
+        const armor = ITEM_DATABASE[hero.equipment.armor];
         chatClient.say(
           channel,
           `🎒 Héroe @${displayName} [${hero.class} Nv.${hero.level}] 🌟 EXP: ${hero.exp} | 🪙 Oro: ${hero.gold} | ⚔️ Arma: ${weapon.name} | 🛡️ Armadura: ${armor.name}`,
@@ -718,17 +718,17 @@ async function main(): Promise<void> {
         hero.state = 'idle';
 
         if (selectedClass === 'Guerrero') {
-          hero.inventory = {
+          hero.equipment = {
             weapon: 'espada_madera', // Items default de clase
             armor: 'escudo_cuero', // Items default de clase
           };
         } else if (selectedClass === 'Mago') {
-          hero.inventory = {
+          hero.equipment = {
             weapon: 'baculo_gastado', // Items default de clase
             armor: 'tunica_aprendiz', // Items default de clase
           };
         } else if (selectedClass === 'Pícaro') {
-          hero.inventory = {
+          hero.equipment = {
             weapon: 'dagas_hierro', // Items default de clase
             armor: 'capa_sombras', // Items default de clase
           };
@@ -946,9 +946,9 @@ async function main(): Promise<void> {
           class: 'Mob',
           hp: activeMob.hp,
           maxHp: activeMob.hp,
-          fuerza: activeMob.atk, // El mob usa su atk base como fuerza
-          destreza: activeMob.level * 3, // Iniciativa proporcional a su nivel
-          inteligencia: 0,
+          strength: activeMob.atk, // El mob usa su atk base como fuerza
+          dexterity: activeMob.level * 3, // Iniciativa proporcional a su nivel
+          intelligence: 0,
           defense: activeMob.level * 2,
           spDefense: activeMob.level * 2,
           critMultiplier: 1,
@@ -977,11 +977,11 @@ async function main(): Promise<void> {
               const itemData = ITEM_DATABASE[itemDropeadoId];
 
               if (itemData.type === 'weapon') {
-                hero.inventory.weapon = itemData.id;
+                hero.equipment.weapon = itemData.id;
               }
 
               if (itemData.type === 'armor') {
-                hero.inventory.armor = itemData.id;
+                hero.equipment.armor = itemData.id;
               }
 
               recompensaMsg += ` 🎁 ¡DROP ÉPICO! Encontraste: *${itemData.name}* y te lo equipaste automáticamente.`;

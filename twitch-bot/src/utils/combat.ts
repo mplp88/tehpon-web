@@ -3,9 +3,9 @@ export interface Combatant {
   class: 'Guerrero' | 'Pícaro' | 'Mago' | 'Mob';
   hp: number;
   maxHp: number;
-  fuerza: number;
-  destreza: number;
-  inteligencia: number;
+  strength: number;
+  dexterity: number;
+  intelligence: number;
   defense: number;
   spDefense: number;
   critMultiplier: number;
@@ -29,7 +29,7 @@ export function simulateCombat(p1: Combatant, p2: Combatant): ICombatResult {
   let burnTicksP2 = 0;
 
   // Determinar iniciativa base según Destreza
-  let p1Turn = p1.destreza >= p2.destreza;
+  let p1Turn = p1.dexterity >= p2.dexterity;
 
   const name1 = p1.class === 'Mob' ? `${p1.emoji} ${p1.name}` : `@${p1.name}`;
   const name2 = p2.class === 'Mob' ? `${p2.emoji} ${p2.name}` : `@${p2.name}`;
@@ -76,10 +76,10 @@ export function simulateCombat(p1: Combatant, p2: Combatant): ICombatResult {
     // 🤺 FASE DE ATAQUE
     // ==========================================
     let baseDamage = 5;
-    if (attacker.class === 'Guerrero') baseDamage = attacker.fuerza;
-    else if (attacker.class === 'Pícaro') baseDamage = attacker.destreza;
-    else if (attacker.class === 'Mago') baseDamage = attacker.inteligencia;
-    else if (attacker.class === 'Mob') baseDamage = attacker.fuerza; // Mobs escalan con fuerza base
+    if (attacker.class === 'Guerrero') baseDamage = attacker.strength;
+    else if (attacker.class === 'Pícaro') baseDamage = attacker.dexterity;
+    else if (attacker.class === 'Mago') baseDamage = attacker.intelligence;
+    else if (attacker.class === 'Mob') baseDamage = attacker.strength; // Mobs escalan con fuerza base
 
     // Variación de daño (+/- 20%)
     const varAmt = baseDamage * 0.2;
@@ -91,7 +91,7 @@ export function simulateCombat(p1: Combatant, p2: Combatant): ICombatResult {
     // --- TRAIT: PÍCARO (CRÍTICO) ---
     let isCrit = false;
     if (attacker.class === 'Pícaro') {
-      const critChance = Math.min(0.5, attacker.destreza / 150);
+      const critChance = Math.min(0.35, attacker.dexterity / 250);
       if (Math.random() < critChance) {
         isCrit = true;
         hitDamage = Math.floor(hitDamage * attacker.critMultiplier);
@@ -139,7 +139,7 @@ export function simulateCombat(p1: Combatant, p2: Combatant): ICombatResult {
     // --- TRAIT: MAGO (QUEMAR - 10% DE CHANCE) ---
     if (attacker.class === 'Mago' && defHp > 0) {
       if (Math.random() < 0.15) {
-        // 10% de probabilidad fija
+        // 15% de probabilidad fija
         if (p1Turn) {
           burnTicksP2 = 3; // Quema por los próximos 3 turnos del defensor
         } else {

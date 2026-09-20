@@ -5,37 +5,32 @@ export const MAX_LEVEL = 30;
 
 export type HeroClass = 'Guerrero' | 'Mago' | 'Pícaro' | 'Campesino';
 
-export interface IWeapon {
-  name: string;
-  atk: number;
-  critMultiplier?: number; // Para el crítico del pícaro
-  exclusiveClass: 'Guerrero' | 'Mago' | 'Pícaro';
-}
-
-export interface IArmor {
-  name: string;
-  defense: number;
-  spDefense: number;
-}
-
 export interface IHero extends Document {
   username: string;
   class: HeroClass;
   level: number;
   exp: number;
   gold: number;
-  inventory: {
+  equipment: {
     weapon: string;
     armor: string;
+    accessory?: string | null;
+    extra?: string | null;
+  };
+  inventory: {
+    consumables: {
+      itemId: string;
+      quantity: number;
+    }[];
   };
   state: 'idle' | 'choosing_class' | 'in_combat';
   updatedAt: Date;
 
   getStats(): {
-    fuerza: number;
-    vitalidad: number;
-    destreza: number;
-    inteligencia: number;
+    strength: number;
+    vitality: number;
+    dexterity: number;
+    intelligence: number;
     maxHp: number;
   };
 }
@@ -51,10 +46,22 @@ const heroSchema = new Schema<IHero>(
     level: { type: Number, default: 1, max: MAX_LEVEL },
     exp: { type: Number, default: 0 },
     gold: { type: Number, default: 10 },
-    inventory: {
+    equipment: {
       weapon: { type: String, default: 'manos_desnudas' },
       armor: { type: String, default: 'ropa_vieja' },
     },
+    inventory: {
+      consumables: {
+        type: [
+          {
+            itemId: { type: String, required: true },
+            quantity: { type: Number, required: true, min: 0, default: 1 },
+          },
+        ],
+      },
+      default: [],
+    },
+
     state: { type: String, enum: ['idle', 'choosing_class'], default: 'idle' },
   },
   { timestamps: true },
@@ -62,56 +69,60 @@ const heroSchema = new Schema<IHero>(
 
 heroSchema.virtual('stats').get(function (this: IHero) {
   const lvl = this.level;
-  let fuerza = 5,
-    vitalidad = 5,
-    destreza = 5,
-    inteligencia = 5;
+  let strength = 5,
+    vitality = 5,
+    dexterity = 5,
+    intelligence = 5;
   let defense = 0,
     spDefense = 0,
     critMult = 1.2;
 
   if (this.class === 'Guerrero') {
-    fuerza += lvl * 2;
-    vitalidad += lvl * 3;
+    strength += lvl * 2;
+    vitality += lvl * 3;
   } else if (this.class === 'Pícaro') {
-    destreza += lvl * 4;
-    vitalidad += lvl * 2;
+    dexterity += lvl * 4;
+    vitality += lvl * 2;
   } else if (this.class === 'Mago') {
-    inteligencia += lvl * 5;
-    vitalidad += lvl * 2;
+    intelligence += lvl * 5;
+    vitality += lvl * 2;
   }
 
-  const weapon = ITEM_DATABASE[this.inventory.weapon];
+  const weapon = ITEM_DATABASE[this.equipment.weapon];
   if (weapon && weapon.exclusiveClass === this.class) {
-    if (weapon.statBonus.fuerza) fuerza += weapon.statBonus.fuerza;
-    if (weapon.statBonus.destreza) destreza += weapon.statBonus.destreza;
-    if (weapon.statBonus.inteligencia)
-      inteligencia += weapon.statBonus.inteligencia;
-    if (weapon.statBonus.vitalidad) vitalidad += weapon.statBonus.vitalidad;
-    if (weapon.statBonus.critMultiplier)
-      critMult = weapon.statBonus.critMultiplier;
+    if (weapon.statBonus?.strength) strength += weapon.statBonus.strength;
+    if (weapon.statBonus?.dexterity) dexterity += weapon.statBonus.dexterity;
+    if (weapon.statBonus?.intelligence)
+      intelligence += weapon.statBonus.intelligence;
+    if (weapon.statBonus?.vitality) vitality += weapon.statBonus.vitality;
+    const critMultiplierEffect = weapon.effects?.find(
+      (e) => e.type === 'crit_multiplier',
+    );
+    if (critMultiplierEffect?.value) {
+      critMult = critMultiplierEffect.value;
+    }
   }
 
-  const armor = ITEM_DATABASE[this.inventory.armor];
+  const armor = ITEM_DATABASE[this.equipment.armor];
   if (armor) {
-    if (armor.statBonus.defense) defense += armor.statBonus.defense;
-    if (armor.statBonus.spDefense) spDefense += armor.statBonus.spDefense;
-    if (armor.statBonus.fuerza) fuerza += armor.statBonus.fuerza;
-    if (armor.statBonus.destreza) destreza += armor.statBonus.destreza;
-    if (armor.statBonus.inteligencia)
-      inteligencia += armor.statBonus.inteligencia;
-    if (armor.statBonus.vitalidad) vitalidad += armor.statBonus.vitalidad;
+    if (armor.statBonus?.defense) defense += armor.statBonus.defense;
+    if (armor.statBonus?.spDefense) spDefense += armor.statBonus.spDefense;
+    if (armor.statBonus?.strength) strength += armor.statBonus.strength;
+    if (armor.statBonus?.dexterity) dexterity += armor.statBonus.dexterity;
+    if (armor.statBonus?.intelligence)
+      intelligence += armor.statBonus.intelligence;
+    if (armor.statBonus?.vitality) vitality += armor.statBonus.vitality;
   }
 
   return {
-    fuerza,
-    vitalidad,
-    destreza,
-    inteligencia,
+    strength,
+    vitality,
+    dexterity,
+    intelligence,
     defense,
     spDefense,
     critMultiplier: critMult,
-    maxHp: vitalidad * 10,
+    maxHp: vitality * 10,
   };
 });
 

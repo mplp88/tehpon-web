@@ -1,18 +1,34 @@
 import { HeroClass } from '../models/Hero.js';
 
+type ItemEffectType =
+  | 'crit_chance'
+  | 'crit_multiplier'
+  | 'damage_percent'
+  | 'max_hp_percent'
+  | 'dodge_chance'
+  | 'elemental_damage';
+
+export interface IItemEffect {
+  type: ItemEffectType;
+  value?: number;
+}
+
 export interface IGameItem {
   id: string;
   name: string;
-  type: 'weapon' | 'armor' | 'accessory';
-  exclusiveClass: HeroClass;
-  statBonus: {
-    fuerza?: number;
-    destreza?: number;
-    inteligencia?: number;
+  type: 'weapon' | 'armor' | 'accessory' | 'consumable';
+  exclusiveClass?: HeroClass;
+  statBonus?: {
+    strength?: number;
+    dexterity?: number;
+    intelligence?: number;
     defense?: number;
-    vitalidad?: number;
+    vitality?: number;
     spDefense?: number;
-    critMultiplier?: number;
+  };
+  effects?: IItemEffect[];
+  shop?: {
+    price: number;
   };
 }
 
@@ -23,7 +39,7 @@ export const ITEM_DATABASE: Record<string, IGameItem> = {
     name: '👊 Manos Desnudas',
     type: 'weapon',
     exclusiveClass: 'Campesino',
-    statBonus: { fuerza: 5, destreza: 5, inteligencia: 5 },
+    statBonus: { strength: 5, dexterity: 5, intelligence: 5 },
   },
   ropa_vieja: {
     id: 'ropa_vieja',
@@ -38,7 +54,7 @@ export const ITEM_DATABASE: Record<string, IGameItem> = {
     name: '🪵 Espada de Madera',
     type: 'weapon',
     exclusiveClass: 'Guerrero',
-    statBonus: { fuerza: 8 },
+    statBonus: { strength: 8 },
   },
   escudo_cuero: {
     id: 'escudo_cuero',
@@ -53,14 +69,20 @@ export const ITEM_DATABASE: Record<string, IGameItem> = {
     name: '🎚️ Dagas de Hierro',
     type: 'weapon',
     exclusiveClass: 'Pícaro',
-    statBonus: { destreza: 14, critMultiplier: 1.1 },
+    statBonus: { dexterity: 14 },
+    effects: [
+      {
+        type: 'crit_multiplier',
+        value: 1.1,
+      },
+    ],
   },
   capa_sombras: {
     id: 'capa_sombras',
     name: '🧥 Capa de Sombras',
     type: 'armor',
     exclusiveClass: 'Pícaro',
-    statBonus: { defense: 6, destreza: 4 },
+    statBonus: { defense: 6, dexterity: 4 },
   },
 
   baculo_gastado: {
@@ -68,7 +90,7 @@ export const ITEM_DATABASE: Record<string, IGameItem> = {
     name: '🪄 Báculo Gastado',
     type: 'weapon',
     exclusiveClass: 'Mago',
-    statBonus: { inteligencia: 15 },
+    statBonus: { intelligence: 15 },
   },
   tunica_aprendiz: {
     id: 'tunica_aprendiz',
@@ -83,14 +105,20 @@ export const ITEM_DATABASE: Record<string, IGameItem> = {
     name: '🗡️ Espada de Hierro',
     type: 'weapon',
     exclusiveClass: 'Guerrero',
-    statBonus: { fuerza: 25 },
+    statBonus: { strength: 25 },
+    shop: {
+      price: 100,
+    },
   },
   hacha_batalla: {
     id: 'hacha_batalla',
     name: '🪓 Hacha de Batalla Pesada',
     type: 'weapon',
     exclusiveClass: 'Guerrero',
-    statBonus: { fuerza: 32 },
+    statBonus: { strength: 32 },
+    shop: {
+      price: 150,
+    },
   },
   armadura_placas: {
     id: 'armadura_placas',
@@ -98,6 +126,9 @@ export const ITEM_DATABASE: Record<string, IGameItem> = {
     type: 'armor',
     exclusiveClass: 'Guerrero',
     statBonus: { defense: 30, spDefense: 5 },
+    shop: {
+      price: 200,
+    },
   },
 
   dagas_venenosas: {
@@ -105,21 +136,42 @@ export const ITEM_DATABASE: Record<string, IGameItem> = {
     name: '🎚️ Dagas Venenosas',
     type: 'weapon',
     exclusiveClass: 'Pícaro',
-    statBonus: { destreza: 28, critMultiplier: 1.3 },
+    statBonus: { dexterity: 28 },
+    effects: [
+      {
+        type: 'crit_multiplier',
+        value: 1.3,
+      },
+    ],
+    shop: {
+      price: 100,
+    },
   },
   garras_sombra: {
     id: 'garras_sombra',
     name: '🐾 Garras de las Sombras',
     type: 'weapon',
     exclusiveClass: 'Pícaro',
-    statBonus: { destreza: 35, critMultiplier: 1.5 },
+    statBonus: { dexterity: 35 },
+    effects: [
+      {
+        type: 'crit_multiplier',
+        value: 1.5,
+      },
+    ],
+    shop: {
+      price: 150,
+    },
   },
   jubon_tachonado: {
     id: 'jubon_tachonado',
     name: '🧥 Jubón Tachonado',
     type: 'armor',
     exclusiveClass: 'Pícaro',
-    statBonus: { defense: 16, destreza: 5 },
+    statBonus: { defense: 16, dexterity: 5 },
+    shop: {
+      price: 200,
+    },
   },
 
   baculo_cristal: {
@@ -127,20 +179,96 @@ export const ITEM_DATABASE: Record<string, IGameItem> = {
     name: '🔮 Báculo de Cristal',
     type: 'weapon',
     exclusiveClass: 'Mago',
-    statBonus: { inteligencia: 32 },
+    statBonus: { intelligence: 32 },
+    shop: {
+      price: 100,
+    },
   },
   libro_hechizos: {
     id: 'libro_hechizos',
     name: '📖 Libro de Hechizos',
     type: 'weapon',
     exclusiveClass: 'Mago',
-    statBonus: { inteligencia: 50 },
+    statBonus: { intelligence: 50 },
+    shop: {
+      price: 150,
+    },
   },
   tunica_archimago: {
     id: 'tunica_archimago',
     name: '🔮 Túnica de Archimago',
     type: 'armor',
     exclusiveClass: 'Mago',
-    statBonus: { spDefense: 20, inteligencia: 4 },
+    statBonus: { spDefense: 20, intelligence: 4 },
+    shop: {
+      price: 200,
+    },
   },
+
+  ring_of_fury: {
+    id: 'ring_of_fury',
+    name: 'Ring of Fury',
+    type: 'accessory',
+    effects: [
+      {
+        type: 'damage_percent',
+        value: 30,
+      },
+      {
+        type: 'max_hp_percent',
+        value: -10,
+      },
+    ],
+  },
+
+  lucky_ring: {
+    id: 'lucky_ring',
+    name: 'Lucky Ring',
+    type: 'accessory',
+    effects: [
+      {
+        type: 'crit_chance',
+        value: 10,
+      },
+    ],
+  },
+
+  shadow_amulet: {
+    id: 'shadow_amulet',
+    name: 'Shadow Amulet',
+    type: 'accessory',
+    effects: [
+      {
+        type: 'dodge_chance',
+        value: 15,
+      },
+    ],
+  },
+
+  berserkers_mark: {
+    id: 'berserkers_mark',
+    name: "Berserker's Mark",
+    type: 'accessory',
+    effects: [
+      {
+        type: 'damage_percent',
+        value: 50, //TODO: Below 30% HP 50 -> 75
+      },
+    ],
+  },
+
+  // vampiric_fang: {
+  //   id: 'vampiric_fang',
+  //   name: 'Vampiric Fang',
+  //   type: 'accessory',
+  //   effects: [
+  //     {
+  //       type: '', //TODO: add heal_after_attack
+  //       value: 50,
+  //     },
+  //   ],
+  // },
+
+  // Infernal Core
+  // +20% Fire Damage
 };
