@@ -30,6 +30,7 @@ const socialLinks = [
 
 <template>
   <div
+    id="links"
     class="bg-slate-900/80 backdrop-blur-md border border-synth-purple p-6 rounded-xl shadow-neon-purple text-center"
   >
     <h2

@@ -121,6 +121,7 @@ onMounted(() => {
 
 <template>
   <div
+    id="games"
     class="bg-slate-900/80 backdrop-blur-md border border-synth-cyan p-6 rounded-xl shadow-neon-cyan"
   >
     <h2
