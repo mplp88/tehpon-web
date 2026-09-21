@@ -1037,6 +1037,140 @@ async function main(): Promise<void> {
       return;
     }
 
+    if (command === '!apostar') {
+      const amount = Number(args[1]);
+
+      // Validar que haya ingresado una cantidad
+      if (!args[1]) {
+        chatClient.say(
+          channel,
+          `⚠️ @${displayName}, tenés que especificar la cantidad de oro que querés apostar: !apostar <oro>`,
+        );
+        return;
+      }
+
+      // Validar que sea un número entero positivo
+      if (!Number.isInteger(amount) || amount <= 0) {
+        chatClient.say(
+          channel,
+          `⚠️ @${displayName}, el oro a apostar tiene que ser un número entero positivo. Ej: !apostar 100`,
+        );
+        return;
+      }
+
+      // Obtener el héroe
+      const hero = await Hero.findOne({ username: lowercaseUser });
+
+      if (!hero) {
+        chatClient.say(
+          channel,
+          `⚠️ @${displayName}, no tenés un héroe creado todavía.`,
+        );
+        return;
+      }
+
+      const now = Date.now();
+      const fifteenMinutes = 15 * 60 * 1000;
+
+      // Inicializar historial de apuestas si todavía no existe
+      if (!hero.gambleHistory) {
+        hero.gambleHistory = [];
+      }
+
+      // Eliminar apuestas de hace más de 15 minutos
+      hero.gambleHistory = hero.gambleHistory.filter(
+        (timestamp) => now - new Date(timestamp).getTime() < fifteenMinutes,
+      );
+
+      // Máximo 5 apuestas cada 15 minutos
+      if (hero.gambleHistory.length >= 5) {
+        const oldestBet = new Date(hero.gambleHistory[0]).getTime();
+        const remainingTime = fifteenMinutes - (now - oldestBet);
+        const remainingMinutes = Math.ceil(remainingTime / 60000);
+
+        chatClient.say(
+          channel,
+          `🚫 @${displayName}, el tabernero te recomienda descansar de los dados. Apostar compulsivamente puede ser malo para tu salud... y tu economía. 🍺🎲 Podés volver a apostar en ${remainingMinutes} min.`,
+        );
+        return;
+      }
+
+      // Validar que tenga suficiente oro
+      if (hero.gold < amount) {
+        chatClient.say(
+          channel,
+          `⚠️ @${displayName}, no tenés suficiente oro. Tenés ${hero.gold} 🪙.`,
+        );
+        return;
+      }
+
+      // La apuesta máxima es el 10% del oro disponible
+      const maxBet = Math.floor(hero.gold * 0.1);
+
+      if (amount > maxBet) {
+        chatClient.say(
+          channel,
+          `⚠️ @${displayName}, la apuesta máxima es el 10% de tu oro. Podés apostar hasta ${maxBet} 🪙.`,
+        );
+        return;
+      }
+
+      // Registrar la apuesta
+      hero.gambleHistory.push(new Date());
+
+      // Tirar el d20
+      const roll = Math.floor(Math.random() * 20) + 1;
+
+      let goldChange: number = 0;
+      let message: string = '';
+
+      switch (true) {
+        case roll === 1:
+          // Desastre: pierde 150% de la apuesta
+          goldChange = -Math.floor(amount * 1.5);
+          message = `💀 ¡DESASTRE! @${displayName} sacó un 1 natural y perdió ${Math.abs(goldChange)} 🪙. ¡Los dados fueron implacables!`;
+          break;
+
+        case roll >= 2 && roll <= 9:
+          // Pierde la apuesta
+          goldChange = -amount;
+          message = `😢 @${displayName} sacó ${roll} y perdió ${amount} 🪙. ¡La suerte no estuvo de tu lado!`;
+          break;
+
+        case roll >= 10 && roll <= 14:
+          // Empate
+          goldChange = 0;
+          message = `😐 @${displayName} sacó ${roll}. ¡Empate! Recuperás tus ${amount} 🪙.`;
+          break;
+
+        case roll >= 15 && roll <= 19:
+          // Gana el doble de la apuesta
+          goldChange = amount;
+          message = `🤑 @${displayName} sacó ${roll}. ¡GANASTE! Obtenés ${amount} 🪙 de beneficio.`;
+          break;
+
+        case roll === 20:
+          // Jackpot: gana 3x la apuesta (beneficio de 2x)
+          goldChange = amount * 2;
+          message = `🎉 @${displayName} sacó un **20 NATURAL**. ¡JACKPOT! 🍀 Ganaste ${amount * 2} 🪙 de beneficio.`;
+          break;
+      }
+
+      // Actualizar oro
+      hero.gold += goldChange;
+
+      // Evitar que el oro quede negativo
+      if (hero.gold < 0) {
+        hero.gold = 0;
+      }
+
+      // Guardar cambios
+      await hero.save();
+
+      // Mostrar resultado
+      chatClient.say(channel, `${message} 💰 Oro actual: ${hero.gold} 🪙`);
+    }
+
     if (command === '!promo') {
       const name = args[1]?.toLowerCase().replace('@', '');
 

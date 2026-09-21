@@ -29,6 +29,7 @@ export interface IHero extends Document {
     armor: string;
   };
   state: 'idle' | 'choosing_class' | 'in_combat';
+  gambleHistory: Date[];
   updatedAt: Date;
 
   getStats(): {
@@ -56,6 +57,10 @@ const heroSchema = new Schema<IHero>(
       armor: { type: String, default: 'ropa_vieja' },
     },
     state: { type: String, enum: ['idle', 'choosing_class'], default: 'idle' },
+    gambleHistory: {
+      type: [Date],
+      default: [],
+    },
   },
   { timestamps: true },
 );
