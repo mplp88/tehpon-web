@@ -1,41 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { useAlerts } from '@/composables/useAlerts'
 import axios from 'axios'
-
-interface IGame {
-  _id: number
-  title: string
-  status: string
-  votedBy: string[]
-}
+import type IGame from '@/models/game.interface'
 
 const { token, triggerAlert, user } = useAuth()
 const { showError, showVoteRemoved, showVoteSuccess } = useAlerts()
 
-const games = ref<IGame[]>([])
-const loading = ref(true)
+const props = defineProps(['games', 'loading'])
+const emit = defineEmits({
+  updateGameStatus(game: IGame) {
+    return true
+  },
+})
 
 const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : ''
-
-const fetchGames = async () => {
-  try {
-    const res = await axios.get(`${API_URL}/api/games`)
-    const rawGames = res.data
-
-    games.value = rawGames.sort((a: IGame, b: IGame) => {
-      if (a.status === 'jugando') return -1
-      if (b.status === 'jugando') return 1
-      return (b.votedBy?.length || 0) - (a.votedBy?.length || 0)
-    })
-  } catch (error) {
-    showError((error as any).message)
-    console.error(error)
-  } finally {
-    loading.value = false
-  }
-}
 
 const voteGame = async (id: number) => {
   if (!token.value) {
@@ -49,16 +28,18 @@ const voteGame = async (id: number) => {
     })
 
     // Si sale todo bien, actualizamos el juego específico en el cliente para no recargar toda la lista
-    const index = games.value.findIndex((g) => g._id === id)
-    if (index !== -1) {
-      games.value[index] = data.game
-    }
+    // const index = props.games.value.findIndex((g: IGame) => g._id === id)
+    // if (index !== -1) {
+    //   props.games.value[index] = data.game
+    // }
 
     if (data.action === 'vote') {
-      showVoteSuccess()
+      await showVoteSuccess()
     } else {
-      showVoteRemoved()
+      await showVoteRemoved()
     }
+
+    emit('updateGameStatus', data.game)
   } catch (err) {
     const errMsg = (err as any).response?.data?.message || 'Error al procesar el voto.'
     showError(errMsg)
@@ -107,16 +88,6 @@ const getButtonClassName = (game: IGame) => {
     )
   }
 }
-
-onMounted(() => {
-  fetchGames()
-  setInterval(
-    () => {
-      fetchGames()
-    },
-    5 * 60 * 1000,
-  )
-})
 </script>
 
 <template>

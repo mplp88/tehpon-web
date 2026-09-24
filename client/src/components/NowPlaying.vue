@@ -1,23 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import axios from 'axios'
-
-interface IGame {
-  title: string
-}
-
-const currentGame = ref<IGame>({ title: '' })
-
-const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : ''
-
-const getCurrentGame = async () => {
-  const { data } = await axios.get(`${API_URL}/api/games/current-game`)
-  currentGame.value = data
-}
-
-onMounted(async () => {
-  await getCurrentGame()
-})
+const props = defineProps(['currentGame'])
 </script>
 
 <template>
@@ -27,7 +9,7 @@ onMounted(async () => {
     <div class="background-flicker"></div>
 
     <div class="relative z-10 text-center">
-      <span v-if="!currentGame.title">
+      <span v-if="!props.currentGame?.title">
         <p class="text-synth-purple tracking-widest font-mono text-sm uppercase">
           Obteniendo información del juego actual...
         </p>
@@ -35,7 +17,7 @@ onMounted(async () => {
       <span v-else>
         <p class="text-synth-purple tracking-widest font-mono text-sm uppercase">Now Playing</p>
         <h3 class="game-title text-white text-3xl font-black mt-2 tracking-tight">
-          {{ currentGame.title }}
+          {{ props.currentGame!.title }}
         </h3>
       </span>
     </div>
